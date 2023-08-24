@@ -9,8 +9,8 @@ NEW IMAGE
 ### Video preprocessing
 
 Before training the model on any video dataset, the videos must be preprocessed and converted to an appropriate format for efficient data loading.
-Specifically, we sample 25 frames per video for YLIMED and 30 frames per video for MiniKinetics.
-A global frame feature representation is obtained using a  Vision Transformer (ViT) [1] or CLIP [2] backbone. Moreover, a local frame feature representation is also obtained, i.e., Detic is used as object detector (OD) [3] and a feature representation for each object is obtained by applying the network backbone (ViT or CLIP) for each object region.
+Specifically, we sample 25 frames per video for YLIMED [1] and 30 frames per video for MiniKinetics [2].
+A global frame feature representation is obtained using a  Vision Transformer (ViT) [3] or CLIP [4] backbone. Moreover, a local frame feature representation is also obtained, i.e., Detic is used as object detector (OD) [5] and a feature representation for each object is obtained by applying the network backbone (ViT or CLIP) for each object region.
 After the video preprocessing stage (i.e. running the Detic and network backbone), the dataset root directory must contain the following subdirectories:
 * When ViT backbone is used:
   * ```vit_global/```: Numpy arrays of size 9x768 (or 30x768) containing the global frame feature vectors for each video (the 9 (30) frames, times the 768-element vector for each frame).
@@ -19,7 +19,7 @@ After the video preprocessing stage (i.e. running the Detic and network backbone
   * ```clip_global/```: Numpy arrays of size 25x1024 (or 30x1024) containing the global frame feature vectors for each video (the 25 (30) frames, times the 2048-element vector for each frame).
   * ```clip_local/```: Numpy arrays of size 25x50x1024 (or 30x50x1024) containing the appearance feature vectors of the detected frame objects for each video (the 25 (30) frames, times the 50 most-prominent objects identified by the object detector, times a 1024-element vector for each object bounding box).
 
-Afterwards,we need to generate tokens for the objects we've extracted. This is done through the tokenizer provided in Beit2 [4] repository.
+Afterwards,we need to generate tokens for the objects we've extracted. This is done through the tokenizer provided in Beit2 [6] repository.
 These tokens, along with the features we've obtained, are used to unsupervisingly train a graph in MiniKinetics. 
 After the token creation stage, the dataset root directory must contain the following subdirectories:
 * ```tokens/```: Numpy arrays of size 30x50x8192 containing the tokens that are present for each detected frame object for each video.
@@ -51,7 +51,7 @@ Again, the evaluation parameters can be modified by specifying the appropriate c
 
 ## License
 
-This code is provided for academic, non-commercial use only. Please also check for any restrictions applied in the code parts and datasets used here from other sources (e.g. provided datasets [1,2,3], etc.). Redistribution and use in source and binary forms, with or without modification, are permitted for academic non-commercial use provided that the following conditions are met:
+This code is provided for academic, non-commercial use only. Please also check for any restrictions applied in the code parts and datasets used here from other sources (e.g. provided datasets [1,2], etc.). Redistribution and use in source and binary forms, with or without modification, are permitted for academic non-commercial use provided that the following conditions are met:
 
 Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation provided with the distribution. This software is provided by the authors "as is" and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall the authors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.
 
@@ -61,3 +61,14 @@ This work was supported by the EU Horizon 2020 programme under grant agreement 1
 
 ## References
 
+[1] Bernd, Julia, et al. "The YLI-MED corpus: Characteristics, procedures, and plans." arXiv preprint arXiv:1503.04250 (2015).
+
+[2] Saining Xie, Chen Sun, Jonathan Huang, Zhuowen Tu and Kevin Murphy. Rethinking Spatiotemporal Feature Learning: Speed-Accuracy Trade-offs in Video Classification. In Proc. ECCV, 2018, pp. 305-321
+
+[3] A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai et al. An image is worth 16x16 words: Transformers for image recognition at scale. In Proc. ICLR, Virtual Event, Austria, May 2021.
+
+[4] Radford, Alec, et al. "Learning transferable visual models from natural language supervision." International conference on machine learning. PMLR, 2021.
+
+[5] Zhou, Xingyi, et al. "Detecting twenty-thousand classes using image-level supervision." European Conference on Computer Vision. Cham: Springer Nature Switzerland, 2022.
+
+[6] Peng, Zhiliang, et al. "Beit v2: Masked image modeling with vector-quantized visual tokenizers." arXiv preprint arXiv:2208.06366 (2022).
