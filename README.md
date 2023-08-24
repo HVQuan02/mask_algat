@@ -4,7 +4,7 @@
 In this repository we provide the materials for Masked Feature Modelling, a novel approach for the unsupervised pre-training of a Graph Attention Network (GAT) block.
 MFM utilizes a pretrained Visual Tokenizer to reconstruct masked features of objects within a video, leveraging the MiniKinetics dataset. We then incorporate the pre-trained GAT block into a state-of-the-art bottom-up supervised video-event recognition architecture, ViGAT, to improve the model's starting point and overall accuracy. Experimental evaluations on the YLI-MED dataset demonstrate the effectiveness of MFM in improving event recognition performance.
 
-NEW IMAGE
+![unsupervised](https://github.com/bmezaris/masked-ViGAT/assets/33573818/233e55b2-008d-470b-a13c-959febffefd6)
 
 ### Video preprocessing
 
@@ -23,6 +23,8 @@ Afterwards,we need to generate tokens for the objects we've extracted. This is d
 These tokens, along with the features we've obtained, are used to unsupervisingly train a graph in MiniKinetics. 
 After the token creation stage, the dataset root directory must contain the following subdirectories:
 * ```tokens/```: Numpy arrays of size 30x50x8192 containing the tokens that are present for each detected frame object for each video.
+
+![supervised](https://github.com/bmezaris/masked-ViGAT/assets/33573818/425a88b1-d3d8-4092-8320-e1d7234233d5)
 
 ### Training
 
