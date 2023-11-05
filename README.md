@@ -28,7 +28,7 @@ After the token creation stage, the dataset root directory must contain the foll
 
 ### Training
 
-Initially, using train_masked.py, we generate the new graph, to replace one or more supervised-learned graphs in the vigat method.
+Initially, using train_masked.py, we generate the new graph, to replace one or more supervised-learned graphs in the ViGAT method.
 ```
 python train_masked.py --dataset_root <dataset dir> --dataset [<minikinetics>]
 ```
