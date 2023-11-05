@@ -14,7 +14,7 @@ A global frame feature representation is obtained using a  Vision Transformer (V
 After the video preprocessing stage (i.e. running the Detic and network backbone), the dataset root directory must contain the following subdirectories:
 * When ViT backbone is used:
   * ```vit_global/```: Numpy arrays of size 9x768 (or 30x768) containing the global frame feature vectors for each video (the 9 (30) frames, times the 768-element vector for each frame).
-  * ```vit_local/```: Numpy arrays of size 9x50x768 (or 30x50x768) containing the appearance feature vectors of the detected frame objects for each video (the 9 (30) frames, times the 50 most-prominent objects identified by the object detector, times a 768-element vector for each object bounding box).
+  * ```vit_local/```: Numpy arrays of size 9x50x768 (or 30x50x768) containing the appearance feature vectors of the detected frame objects for each video (the 9 (or 30) frames, times the 50 most-prominent objects identified by the object detector, times a 768-element vector for each object bounding box).
 * When ClIP backbone is used:
   * ```clip_global/```: Numpy arrays of size 25x1024 (or 30x1024) containing the global frame feature vectors for each video (the 25 (30) frames, times the 2048-element vector for each frame).
   * ```clip_local/```: Numpy arrays of size 25x50x1024 (or 30x50x1024) containing the appearance feature vectors of the detected frame objects for each video (the 25 (30) frames, times the 50 most-prominent objects identified by the object detector, times a 1024-element vector for each object bounding box).
