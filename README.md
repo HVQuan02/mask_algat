@@ -22,7 +22,7 @@ After the video preprocessing stage (i.e. running the Detic and network backbone
 Afterwards,we need to generate tokens for the objects we've extracted. This is done through the tokenizer provided in Beit2 [7] repository.
 These tokens, along with the features we've obtained, are used to unsupervisingly train a graph in MiniKinetics. 
 After the token creation stage, the dataset root directory must contain the following subdirectories:
-* ```tokens/```: Numpy arrays of size 30x50x8192 containing the tokens that are present for each detected frame object for each video.
+* ```tokens/```: Numpy arrays of size 30x50x8192 containing the tokens that are present for each detected object for each frame in a video.
 
 ![supervised](https://github.com/bmezaris/masked-ViGAT/assets/33573818/425a88b1-d3d8-4092-8320-e1d7234233d5)
 
