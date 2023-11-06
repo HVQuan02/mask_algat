@@ -75,4 +75,4 @@ This work was supported by the EU Horizon 2020 programme under grant agreement 1
 
 [6] Zhou, Xingyi, et al. "Detecting twenty-thousand classes using image-level supervision." European Conference on Computer Vision. Cham: Springer Nature Switzerland, 2022.
 
-[6] Peng, Zhiliang, et al. "Beit v2: Masked image modeling with vector-quantized visual tokenizers." arXiv preprint arXiv:2208.06366 (2022).
+[6] Peng, Zhiliang, et al. "BEiT v2: Masked image modeling with vector-quantized visual tokenizers." arXiv preprint arXiv:2208.06366 (2022).
