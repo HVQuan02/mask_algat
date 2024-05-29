@@ -12,7 +12,6 @@ from torch.utils.data import DataLoader, Dataset
 import argparse
 
 parser = argparse.ArgumentParser(description='ViGAT global feature processing')
-parser.add_argument('--device', type=str, default='gpu', choices=['cpu', 'gpu'], help='device')
 parser.add_argument('--preprocess_dir', type=str, default='/kaggle/input/cufed-full-split', help='preprocess directory')
 parser.add_argument('--save_dir', type=str, default='/kaggle/working/preprocess/global_feat', help='save directory for global feature')
 parser.add_argument('--num_workers', type=int, default=4, help='num of workers of data loader')
@@ -43,7 +42,8 @@ cfg.MODEL.WEIGHTS = 'https://dl.fbaipublicfiles.com/detic/Detic_LCOCOI21k_CLIP_S
 cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # set threshold for this model
 cfg.MODEL.ROI_BOX_HEAD.ZEROSHOT_WEIGHT_PATH = 'rand'
 cfg.MODEL.ROI_HEADS.ONE_CLASS_PER_PROPOSAL = True # For better visualization purpose. Set to False for all classes.
-cfg.MODEL.DEVICE=args.device # uncomment this to use cpu-only mode.
+available_device = "cuda:0" if torch.cuda.is_available() else "cpu"
+cfg.MODEL.DEVICE=available_device # uncomment this to use cpu-only mode.
 predictor = DefaultPredictor(cfg)
 
 # Setup the model's vocabulary using build-in datasets
@@ -135,7 +135,7 @@ def masked_preprocess(args):
   detic_batch_size = 1
   crop_batch_size = 100
   objects_size = 50
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  device = torch.device(available_device)
   model.to(device)
 
   with open(preprocess_path, 'r') as f:
