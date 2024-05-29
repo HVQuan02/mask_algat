@@ -3,6 +3,7 @@ import numpy as np
 import sys
 import os
 import json
+from json.decoder import JSONDecodeError
 from PIL import Image
 from transformers import AutoImageProcessor, ViTModel, CLIPProcessor, CLIPModel
 from torch.utils.data import DataLoader, Dataset
@@ -11,8 +12,8 @@ import argparse
 parser = argparse.ArgumentParser(description='ViGAT global feature processing')
 parser.add_argument('--extractor', type=str, default='clip', choices=['clip', 'vit'], help='global feature extractor')
 parser.add_argument('--preprocess_dir', type=str, default='/kaggle/input/cufed-full-split', help='preprocess directory')
-parser.add_argument('--save_dir', type=str, default='/kaggle/working/global_feat', help='save directory for global feature')
-parser.add_argument('--num_workers', type=int, default=2, help='num of workers of data loader')
+parser.add_argument('--save_dir', type=str, default='/kaggle/working/preprocess/global_feat', help='save directory for global feature')
+parser.add_argument('--num_workers', type=int, default=4, help='num of workers of data loader')
 parser.add_argument('--sample_size', type=int, default=30, help='sampling number of images in an album')
 args = parser.parse_args()
 
@@ -70,14 +71,17 @@ def global_masked(args):
   album_loader = DataLoader(album_dataset, batch_size=album_batch_size, num_workers=args.num_workers, collate_fn=my_collate)
 
   with open(album_imgs_path, 'r') as json_file:
-    album_imgs_dict = json.load(json_file)
+    try:
+        album_imgs_dict = json.load(json_file)
+    except JSONDecodeError:
+        album_imgs_dict = {}
 
   for album_idx, albums in enumerate(album_loader):
     album = albums[0]
     
     # skip pre-existing npy feats
     global_path = os.path.join(args.save_dir, f"{album}.npy")
-    if os.path.exists(global_path):
+    if os.path.exists(global_path) and album in album_imgs_dict:
       continue
 
     print(f"------Album {album_idx + 1}: {album}------")
@@ -101,10 +105,8 @@ def global_masked(args):
     np.save(os.path.join(args.save_dir, f"{album}.npy"), selected_feat)
 
     # get selected images of albums
-    if album in album_imgs_dict:
-      continue
     image_names_without_extension = np.char.replace(image_names, '.jpg', '')
-    album_imgs_dict[album] = image_names_without_extension[top_sims]
+    album_imgs_dict[album] = image_names_without_extension[top_sims].tolist()
     with open(album_imgs_path, 'w') as json_file:
       json.dump(album_imgs_dict, json_file)
 
