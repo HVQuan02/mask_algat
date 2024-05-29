@@ -74,6 +74,8 @@ event_labels = ['Architecture', 'BeachTrip', 'Birthday', 'BusinessActivity',
                   'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                   'UrbanTrip', 'Wedding', 'Zoo']
 
+event_processor = {'Architecture': 'Architecture', 'BeachTrip': 'Beach Trip', 'Birthday': 'Birthday', 'BusinessActivity': 'Business Activity', 'CasualFamilyGather': 'Casual Family Gather', 'Christmas': 'Christmas', 'Cruise': 'Cruise', 'Graduation': 'Graduation', 'GroupActivity': 'Group Activity', 'Halloween': 'Halloween', 'Museum': 'Museum', 'NatureTrip': 'Nature Trip', 'PersonalArtActivity': 'Personal Art Activity', 'PersonalMusicActivity': 'Personal Music Activity', 'PersonalSports': 'Personal Sports', 'Protest': 'Protest', 'ReligiousActivity': 'Religious Activity', 'Show': 'Show', 'Sports': 'Sports', 'ThemePark': 'Theme Park', 'UrbanTrip': 'Urban Trip', 'Wedding': 'Wedding', 'Zoo': 'Zoo'}
+
 class AlbumDataset(Dataset):
   def __init__(self, album_names):
     self.album_names = album_names
@@ -167,8 +169,9 @@ def masked_preprocess(args):
 
     # vit_global_processor
     with torch.no_grad():
-      inputs = processor(text=album_types[album], images=[Image.open(image_path) for image_path in image_paths], 
-                             return_tensors="pt", padding=True)
+      inputs = processor(text=[event_processor[album_type] for album_type in album_types[album]], 
+                        images=[Image.open(image_path) for image_path in image_paths], 
+                        return_tensors="pt", padding=True)
       outputs = model(**inputs.to(device))
     sims = outputs.logits_per_image.cpu().numpy().mean(axis=1)
     feat = outputs.image_embeds.cpu().numpy()
@@ -204,7 +207,8 @@ def masked_preprocess(args):
     vit_local_list = []
     with torch.no_grad():
       for crops in crop_loader:
-        cropped_inputs = processor(text=album_types[album], images=crops, return_tensors="pt", padding=True)
+        cropped_inputs = processor(text=[event_processor[album_type] for album_type in album_types[album]], 
+                                   images=crops, return_tensors="pt", padding=True)
         cropped_outputs = model(**cropped_inputs.to(device))
         cropped_features = cropped_outputs.image_embeds.cpu().numpy()
         vit_local_list.append(cropped_features)
