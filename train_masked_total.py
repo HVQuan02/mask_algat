@@ -6,7 +6,6 @@ import torch.optim as optim
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import os
-
 from datasets import FCVID, ACTNET, miniKINETICS, YLIMED
 from model import tokens_with_global_part_sharing as Model
 
@@ -112,6 +111,8 @@ def main():
         sched.load_state_dict(data['sched_state_dict'])
         if args.verbose:
             print("resuming from epoch {}".format(start_epoch))
+
+    model.train()
     for epoch in range(start_epoch, args.num_epochs):
         t0 = time.perf_counter()
         loss = train_omega(model, loader,  crit, opt, sched, device)

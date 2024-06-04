@@ -27,7 +27,7 @@ class GraphModule(nn.Module):
         self.wk = nn.Linear(num_feats, num_feats)
 
         layers = []
-        for i in range(num_layers):
+        for _ in range(num_layers):
             layers.append(GCNLayer(num_feats, num_feats))
         self.gcn = nn.ModuleList(layers)
 
@@ -70,7 +70,6 @@ class tokengraph_with_global_part_sharing(nn.Module):
 
     def forward(self, feats, feats_global):
         N, FR, B, NF = feats.shape
-
         feats = feats.view(N * FR, B, NF)
         x = self.graph(feats)
         x = x.view(N, FR, NF)
@@ -80,6 +79,31 @@ class tokengraph_with_global_part_sharing(nn.Module):
         x = self.cls(x)
         return x
 
+
+class MaskedGCN(nn.Module):
+    def __init__(self, gcn_layers, num_feats, L, mask_percentage):
+        super().__init__()
+        self.mask_percentage = mask_percentage
+        self.masking_p = nn.Parameter(torch.randn(num_feats))  # Learnable masked vector p
+        self.graph = GraphModule(gcn_layers, num_feats)
+        self.fc = nn.Linear(num_feats, L)  # FC layer to transform F to L
+
+    def forward(self, feats):
+        N, FR, B, NF = feats.shape
+        feats = feats.view(N * FR, B, NF)
+        
+        # Masking features for each image
+        for i in range(N * FR):
+            mask_indices = torch.randperm(B)[:int(self.mask_percentage * B)]
+            feats[i, mask_indices] = self.masking_p
+
+        x = self.graph(feats)
+        x = x.view(N, FR, -1)
+        x = self.graph(x) # latent representation
+        score_vector = self.fc(x)
+
+        return score_vector
+    
 
 class cls_only(nn.Module):
     def __init__(self, gcn_layers, num_feats, num_class):
@@ -134,7 +158,6 @@ class tokenGraph_and_Graph(nn.Module):
         x_tokens = x_tokens.view(N, FR, NF)
         x_tokens = self.graph_omega3(x_tokens)
         x = self.cls(x_tokens)
-
         return x
 
 class tokenGraph_and_Graph_shared(nn.Module):
@@ -150,7 +173,6 @@ class tokenGraph_and_Graph_shared(nn.Module):
         x_tokens = x_tokens.view(N, FR, NF)
         x_tokens = self.graph(x_tokens)
         x = self.cls(x_tokens)
-
         return x
 
 
@@ -167,7 +189,6 @@ class tokenGraph_and_mean(nn.Module):
         x_tokens = x_tokens.view(N, FR, NF)
         x_tokens = x_tokens.mean(dim=-2)
         x = self.cls(x_tokens)
-
         return x
 
 
@@ -185,7 +206,6 @@ class Graph_and_tokenGraph(nn.Module):
         x_tokens = x_tokens.view(N, FR, NF)
         x_tokens = self.graph(x_tokens)
         x = self.cls(x_tokens)
-
         return x
 
 
@@ -202,5 +222,4 @@ class mean_and_tokenGraph(nn.Module):
         x_tokens = x_tokens.view(N, FR, NF)
         x_tokens = self.graph(x_tokens)
         x = self.cls(x_tokens)
-
         return x

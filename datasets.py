@@ -1,407 +1,146 @@
 import os
-import sys
+import json
 import numpy as np
-import csv
 from torch.utils.data import Dataset
 
 
-class FCVID(Dataset):
-    NUM_CLASS = 239
-    NUM_FRAMES = 9
+def get_album_importance(album_imgs, album_importance):
+    img_score_dict = {}
+    for _, image, score in album_importance:
+        img_score_dict[image] = score
+    importances = np.zeros(len(album_imgs))
+    for i, image in enumerate(album_imgs):
+        importances[i] = img_score_dict[image]
+    return importances
+
+
+class CUFED(Dataset):
+    NUM_CLASS = 23
+    NUM_FRAMES = 30
     NUM_BOXES = 50
+    event_labels = ['Architecture', 'BeachTrip', 'Birthday', 'BusinessActivity',
+                    'CasualFamilyGather', 'Christmas', 'Cruise', 'Graduation',
+                    'GroupActivity', 'Halloween', 'Museum', 'NatureTrip',
+                    'PersonalArtActivity', 'PersonalMusicActivity', 'PersonalSports',
+                    'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
+                    'UrbanTrip', 'Wedding', 'Zoo']
 
-    def __init__(self, root_dir, is_train, ext_method):
+    def __init__(self, root_dir, feats_dir, split_dir, is_train, is_val=False):
         self.root_dir = root_dir
-        self.phase = 'train' if is_train else 'test'
-        if ext_method == 'VIT':
-            self.local_folder = 'vit_local'
-            self.global_folder = 'vit_global'
-            self.NUM_FEATS = 768
-        elif ext_method == 'RESNET':
-            self.local_folder = 'R152_local'
-            self.global_folder = 'R152_global'
-            self.NUM_FEATS = 2048
+        self.feats_dir = feats_dir
+        
+        if is_train:
+            if is_val:
+                self.phase = 'val'
+            else:
+                self.phase = 'train'
         else:
-            sys.exit("Unknown Extractor")
-
-        split_path = os.path.join(root_dir, 'materials', 'FCVID_VideoName_TrainTestSplit.txt')
-        data_split = np.genfromtxt(split_path, dtype='str')
-
-        label_path = os.path.join(root_dir, 'materials', 'FCVID_Label.txt')
-        labels = np.genfromtxt(label_path, dtype=np.float32)
-
-        self.num_missing = 0
-        mask = np.zeros(data_split.shape[0], dtype=bool)
-        for i, row in enumerate(data_split):
-            if row[1] == self.phase:
-                base, _ = os.path.splitext(os.path.normpath(row[0]))
-                feats_path = os.path.join(root_dir, self.local_folder, base + '.npy')
-                if os.path.exists(feats_path):
-                    mask[i] = 1
-                else:
-                    self.num_missing += 1
-
-        self.labels = labels[mask, :]
-        self.videos = data_split[mask, 0]
-
-    def __len__(self):
-        return len(self.videos)
-
-    def __getitem__(self, idx):
-        name = self.videos[idx]
-        name, _ = os.path.splitext(name)
-
-        feats_path = os.path.join(self.root_dir, self.local_folder, name + '.npy')
-        global_path = os.path.join(self.root_dir, self.global_folder, name + '.npy')
-        feats = np.load(feats_path)
-        feat_global = np.load(global_path)
-        label = self.labels[idx, :]
-
-        return feats, feat_global, label, name
-
-
-class ACTNET(Dataset):
-    NUM_CLASS = 200
-    NUM_FRAMES = 120
-    NUM_BOXES = 50
-
-    def __init__(self, root_dir, is_train, ext_method):
-        self.root_dir = root_dir
-        self.phase = 'train' if is_train else 'test'
-        if ext_method == 'CLIP':
-            self.local_folder = 'feats_clip/clip_local'
-            self.global_folder = 'feats_clip/clip_global'
-            self.NUM_FEATS = 1024
-        elif ext_method == 'VIT':
-            self.local_folder = 'feats/vit_local'
-            self.global_folder = 'feats/vit_global'
-            self.NUM_FEATS = 768
-        else:
-            sys.exit("Unknown Extractor")
+            self.phase = 'test'
+            
+        self.local_folder = 'clip_local'
+        self.global_folder = 'clip_global'
+        self.NUM_FEATS = 1024
 
         if self.phase == 'train':
-            split_path = os.path.join(root_dir, 'actnet_train_split.txt')
+            split_path = os.path.join(split_dir, 'train_split.txt')
         else:
-            split_path = os.path.join(root_dir, 'actnet_val_split.txt')
-        self.num_missing = 0
-        vidname_list = []
-        labels_list = []
-        with open(split_path) as f:
-            for line in f:
-                row = line.strip().split(',')
-                feats_path = os.path.join(self.root_dir, self.local_folder, row[0] + '.npy')
-                if os.path.exists(feats_path):
-                    vidname_list.append(row[0])
-                    labels_list.append(list(map(int, row[2:])))
-                else:
-                    self.num_missing += 1
+            split_path = os.path.join(split_dir, 'val_split.txt')
 
-        length = len(vidname_list)
-        labels_np = np.zeros((length, self.NUM_CLASS), dtype=np.float32)
-        for i, lbllst in enumerate(labels_list):
-            for lbl in lbllst:
-                labels_np[i, lbl] = 1.
+        label_path = os.path.join(root_dir, "event_type.json")
+        with open(label_path, 'r') as f:
+          album_data = json.load(f)
+
+        if self.phase == 'test':
+            importance_path = os.path.join(root_dir, "image_importance.json")
+            with open(importance_path, 'r') as f:
+                album_importance = json.load(f)
+
+            album_imgs_path = os.path.join(split_dir, "album_imgs.json")
+            with open(album_imgs_path, 'r') as f:
+                album_imgs = json.load(f)
+                
+            self.importance = album_importance
+            self.album_imgs = album_imgs
+
+        with open(split_path, 'r') as f:
+            album_names = f.readlines()
+        vidname_list = [name.strip() for name in album_names]
+
+        labels_np = np.zeros((len(vidname_list), self.NUM_CLASS), dtype=np.float32)
+        for i, vidname in enumerate(vidname_list):
+            for lbl in album_data[vidname]:
+                idx = self.event_labels.index(lbl)
+                labels_np[i, idx] = 1
 
         self.labels = labels_np
         self.videos = vidname_list
 
-
     def __len__(self):
         return len(self.videos)
 
     def __getitem__(self, idx):
         name = self.videos[idx]
-        # name, _ = os.path.splitext(name)
+        local_path = os.path.join(self.feats_dir, self.local_folder, name + '.npy')
+        global_path = os.path.join(self.feats_dir, self.global_folder, name + '.npy')
 
-        feats_path = os.path.join(self.root_dir, self.local_folder, name + '.npy')  #
-        global_path = os.path.join(self.root_dir, self.global_folder, name + '.npy')  #
-        feats = np.load(feats_path)
+        feat_local = np.load(local_path)
         feat_global = np.load(global_path)
         label = self.labels[idx, :]
 
-        return feats, feat_global, label, name
+        if self.phase == 'test':
+            album_importance = self.importance[name]
+            album_imgs = self.album_imgs[name]
+            importances = get_album_importance(album_imgs, album_importance)
+            return feat_local, feat_global, label, importances
+        
+        return feat_local, feat_global, label
 
 
-class miniKINETICS(Dataset):
-    NUM_CLASS = 200
+class CUFED_tokens(Dataset):
+    NUM_CLASS = 23
     NUM_FRAMES = 30
     NUM_BOXES = 50
+    TOKEN_SIZE = 8192
+    event_labels = ['Architecture', 'BeachTrip', 'Birthday', 'BusinessActivity',
+                    'CasualFamilyGather', 'Christmas', 'Cruise', 'Graduation',
+                    'GroupActivity', 'Halloween', 'Museum', 'NatureTrip',
+                    'PersonalArtActivity', 'PersonalMusicActivity', 'PersonalSports',
+                    'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
+                    'UrbanTrip', 'Wedding', 'Zoo']
 
-    def __init__(self, root_dir, is_train, ext_method):
+    def __init__(self, root_dir, feats_dir, split_dir, is_train, is_val=False):
         self.root_dir = root_dir
-        self.phase = 'train' if is_train else 'test'
-        if ext_method == 'CLIP':
-            self.local_folder = 'feats_val/clip_local'
-            self.global_folder = 'feats_val/clip_global'
-            self.NUM_FEATS = 1024
-        elif ext_method == 'VIT':
-            self.local_folder = 'feats/vit_local'
-            self.global_folder = 'feats/vit_global'
-            self.NUM_FEATS = 768
-        else:
-            sys.exit("Unknown Extractor")
-
-        if self.phase == 'train':
-            split_path = os.path.join(root_dir, 'annotations', 'miniKinetics130trainv2.csv')
-        else:
-            split_path = os.path.join(root_dir, 'annotations', 'miniKinetics130valv2.csv')
-
-        vidname_list = []
-        labels_list = []
-        self.num_missing = 0
-
-        with open(split_path) as f:
-            file = csv.reader(f)
-            header = []
-            header = next(file)
-            if self.phase == 'train':
-                mask = np.zeros(121215, dtype=bool)
+        self.feats_dir = feats_dir
+        self.local_dir = 'clip_local'
+        self.token_dir = 'token'
+        self.NUM_FEATS = 1024
+        
+        if is_train:
+            if is_val:
+                self.phase = 'val'
             else:
-                mask = np.zeros(9867, dtype=bool)
-            for i, row in enumerate(file):
-                base = row[1] + '_' + row[2].zfill(6) + '_' + row[3].zfill(6) + '_frames'
-                vidname_list.append(base)
-                labels_list.append(list(map(int, [row[0]])))
-                feats_path = os.path.join(root_dir, self.local_folder, base + '.npy')
-                if os.path.exists(feats_path):
-                    mask[i] = 1
-                else:
-                    self.num_missing += 1
-        self.labels = np.array(labels_list, dtype=np.int64).squeeze()[mask]   # , :]
-        self.videos = np.array(vidname_list)[mask]
-
-    def __len__(self):
-        return len(self.videos)
-
-    def __getitem__(self, idx):
-        name = self.videos[idx]
-        # name, _ = os.path.splitext(name)
-
-        feats_path = os.path.join(self.root_dir, self.local_folder, name + '.npy')  #
-        global_path = os.path.join(self.root_dir, self.global_folder, name + '.npy')  #
-        feats = np.load(feats_path)
-        feat_global = np.load(global_path)
-        label = self.labels[idx]
-
-        return feats, feat_global, label, name
-
-
-class YLIMED(Dataset):
-    NUM_CLASS = 10
-    NUM_FRAMES = 9
-    NUM_BOXES = 50
-
-    def __init__(self, root_dir, is_train, ext_method):
-        self.root_dir = root_dir
-        self.phase = 'Training' if is_train else 'Test'
-        if ext_method == 'VIT':
-            self.local_folder = 'feats_vit/vit_local'
-            self.global_folder = 'feats_vit/vit_global'
-            self.NUM_FEATS = 768
-        elif ext_method == 'CLIP':
-            self.local_folder = 'feats_clip/clip_local'
-            self.global_folder = 'feats_clip/clip_global'
-            self.NUM_FEATS = 1024
+                self.phase = 'train'
         else:
-            sys.exit("Unknown Extractor")
-
-        split_path = os.path.join(root_dir, 'YLI-MED_Corpus_v.1.4.txt')
-        data_split = np.genfromtxt(split_path, dtype='str', skip_header=1)
-
-        self.num_missing = 0
-        mask = np.zeros(data_split.shape[0], dtype=bool)
-        for i, row in enumerate(data_split):
-            if row[7] == 'Ev100':
-                continue
-
-            if row[13] == self.phase:
-                feats_path = os.path.join(root_dir, self.local_folder, row[0] + '.npy')
-                if os.path.exists(feats_path):
-                    mask[i] = 1
-                else:
-                    self.num_missing += 1
-
-        self.videos = data_split[mask, 0]
-        labels = [int(x[3:]) - 1 for x in data_split[mask, 7]]
-        self.labels = np.array(labels, dtype=np.int32)
-
-    def __len__(self):
-        return len(self.videos)
-
-    def __getitem__(self, idx):
-        name = self.videos[idx]
-        name, _ = os.path.splitext(name)
-
-        feats_path = os.path.join(self.root_dir, self.local_folder, name + '.npy')
-        global_path = os.path.join(self.root_dir, self.global_folder, name + '.npy')
-
-        feats = np.load(feats_path)
-        feat_global = np.load(global_path)
-        label = np.int64(self.labels[idx])
-
-        return feats, feat_global, label, name
-
-
-class YLIMED_tokens(Dataset):
-    NUM_CLASS = 10
-    NUM_FRAMES = 9
-    NUM_BOXES = 50
-
-    def __init__(self, root_dir, is_train, ext_method):
-        self.root_dir = root_dir
-        self.phase = 'Training' if is_train else 'Test'
-        self.clip_folder = 'feats_clip/vit_local'
-        self.token_folder = 'tokens_new/local'
-        self.NUM_FEATS = 1024
-
-        split_path = os.path.join(root_dir, 'YLI-MED_Corpus_v.1.4.txt')
-        data_split = np.genfromtxt(split_path, dtype='str', skip_header=1)
-
-        self.num_missing = 0
-        mask = np.zeros(data_split.shape[0], dtype=bool)
-        for i, row in enumerate(data_split):
-            if row[7] == 'Ev100':
-                continue
-
-            if row[13] == self.phase:
-                feats_path = os.path.join(root_dir, self.clip_folder, row[0] + '.npy')
-                if os.path.exists(feats_path):
-                    mask[i] = 1
-                else:
-                    self.num_missing += 1
-
-        self.videos = data_split[mask, 0]
-        labels = [int(x[3:]) - 1 for x in data_split[mask, 7]]
-        self.labels = np.array(labels, dtype=np.int32)
-
-    def __len__(self):
-        return len(self.videos)
-
-    def __getitem__(self, idx):
-        name = self.videos[idx]
-        name, _ = os.path.splitext(name)
-
-        feats_path = os.path.join(self.root_dir, self.clip_folder, name + '.npy')
-        token_path = os.path.join(self.root_dir, self.token_folder, name + '.npy')
-
-        feats = np.load(feats_path)
-        tokens = np.load(token_path)
-
-        # label = np.int64(self.labels[idx])
-
-        return feats, tokens, name
-
-
-class ACTNET_tokens(Dataset):
-    NUM_CLASS = 200
-    NUM_FRAMES = 120
-    NUM_BOXES = 50
-
-    def __init__(self, root_dir, is_train, ext_method):
-        self.root_dir = root_dir
-        self.phase = 'train' if is_train else 'test'
-
-        self.clip_folder = 'clip_feats/clip_local'
-        self.token_folder = 'tokens/local'
-        self.NUM_FEATS = 1024
+            self.phase = 'test'
 
         if self.phase == 'train':
-            split_path = os.path.join(root_dir, 'actnet_train_split.txt')
+            split_path = os.path.join(split_dir, 'train_split.txt')
         else:
-            split_path = os.path.join(root_dir, 'actnet_val_split.txt')
-        self.num_missing = 0
+            split_path = os.path.join(split_dir, 'val_split.txt')
 
-        vidname_list = []
-        labels_list = []
-        with open(split_path) as f:
-            for line in f:
-                row = line.strip().split(',')
-                feats_path = os.path.join(self.root_dir, self.clip_folder, row[0] + '.npy')
-                if os.path.exists(feats_path):
-                    vidname_list.append(row[0])
-                    labels_list.append(list(map(int, row[2:])))
-                else:
-                    self.num_missing += 1
-
-        length = len(vidname_list)
-        labels_np = np.zeros((length, self.NUM_CLASS), dtype=np.float32)
-        for i, lbllst in enumerate(labels_list):
-            for lbl in lbllst:
-                labels_np[i, lbl] = 1.
-
-        self.labels = labels_np
+        with open(split_path, 'r') as f:
+            album_names = f.readlines()
+        vidname_list = [name.strip() for name in album_names]
+        
         self.videos = vidname_list
 
-
     def __len__(self):
         return len(self.videos)
 
     def __getitem__(self, idx):
         name = self.videos[idx]
-        # name, _ = os.path.splitext(name)
-
-        feats_path = os.path.join(self.root_dir, self.clip_folder, name + '.npy')
-        token_path = os.path.join(self.root_dir, self.token_folder, name + '.npz')
-
-        feats = np.load(feats_path)
-        tokens = np.load(token_path)['arr_0']
-
-        return feats, tokens, name
-
-class miniKinetics_tokens(Dataset):
-    NUM_CLASS = 200
-    NUM_FRAMES = 30
-    NUM_BOXES = 50
-
-    def __init__(self, root_dir, is_train, ext_method):
-        self.root_dir = root_dir
-        self.phase = 'train' if is_train else 'test'
-
-        self.clip_folder = 'feats/clip_local'
-        self.token_folder = 'tokens/local'
-        self.NUM_FEATS = 1024
-
-        if self.phase == 'train':
-            split_path = os.path.join(root_dir, 'annotations', 'miniKinetics130trainv2.csv')
-        else:
-            split_path = os.path.join(root_dir, 'annotations', 'miniKinetics130valv2.csv')
-
-        vidname_list = []
-        labels_list = []
-        self.num_missing = 0
-
-        with open(split_path) as f:
-            file = csv.reader(f)
-            header = []
-            header = next(file)
-            if self.phase == 'train':
-                mask = np.zeros(121215, dtype=bool)
-            else:
-                mask = np.zeros(9867, dtype=bool)
-            for i, row in enumerate(file):
-                base = row[1] + '_' + row[2].zfill(6) + '_' + row[3].zfill(6) + '_frames'
-                vidname_list.append(base)
-                labels_list.append(list(map(int, [row[0]])))
-                feats_path = os.path.join(root_dir, self.token_folder, base + '.npz')
-                if os.path.exists(feats_path):
-                    mask[i] = 1
-                else:
-                    self.num_missing += 1
-        self.labels = np.array(labels_list, dtype=np.int64).squeeze()[mask]  # , :]
-        self.videos = np.array(vidname_list)[mask]
-
-    def __len__(self):
-        return len(self.videos)
-
-    def __getitem__(self, idx):
-        name = self.videos[idx]
-        # name, _ = os.path.splitext(name)
-
-        feats_path = os.path.join(self.root_dir, self.clip_folder, name + '.npy')
-        token_path = os.path.join(self.root_dir, self.token_folder, name + '.npz')
-
-        feats = np.load(feats_path)
-        tokens = np.load(token_path)['arr_0']
-        if feats.shape[1] != 50:
-            print()
-        return feats, tokens, name
+        feat_path = os.path.join(self.feats_dir, self.local_dir, name + '.npy')
+        token_path = os.path.join(self.feats_dir, self.token_dir, name + '.npy')
+        feat = np.load(feat_path)
+        token = np.load(token_path)
+        return feat, token
