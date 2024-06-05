@@ -8,7 +8,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from datasets import CUFED_tokens
-# from model import ModelGCN_maskedblock_video as Model
 from model import MaskedGCN as Model
 
 
@@ -17,17 +16,15 @@ parser.add_argument('--seed', type=int, default=2024, help='seed for randomness'
 parser.add_argument('--gcn_layers', type=int, default=2, help='number of gcn layers')
 parser.add_argument('--dataset', default='cufed', choices=['holidays', 'pec', 'cufed'])
 parser.add_argument('--dataset_root', default='/kaggle/input/thesis-cufed/CUFED', help='dataset root directory')
-parser.add_argument('--feats_dir', default='/kaggle/input/masked-cufed-feats', help='global and local features directory')
+parser.add_argument('--feats_dir', default='/kaggle/input/mask-cufed-feats', help='global and local features directory')
 parser.add_argument('--split_dir', default='/kaggle/input/cufed-full-split', help='train split and val split')
 parser.add_argument('--lr', type=float, default=1e-3, help='initial learning rate')
 parser.add_argument('--milestones', nargs="+", type=int, default=[50, 100], help='milestones of learning decay')
 parser.add_argument('--num_epochs', type=int, default=200, help='number of epochs to train')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
-parser.add_argument('--num_objects', type=int, default=50, help='number of objects with best DoC')
 parser.add_argument('--mask_percentage', type=float, default=0.4, help='percentage of masked features')
 parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
 parser.add_argument('--resume', default=None, help='checkpoint to resume training')
-parser.add_argument('--save_interval', type=int, default=100, help='interval for saving models (epochs)')
 parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
 parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
 parser.add_argument('--min_delta', type=float, default=0.05, help='min delta of early stopping')
@@ -63,6 +60,7 @@ def train(model, loader, crit, opt, sched, device):
     model.train()
     for feats, tokens in loader:
         feats = feats.to(device)
+        tokens = tokens.to(device)
         opt.zero_grad()
         out_data = model(feats)
         loss = crit(out_data, tokens)
@@ -74,10 +72,12 @@ def train(model, loader, crit, opt, sched, device):
 
 
 def validate(model, loader, crit, device):
+    epoch_loss = 0
     model.eval()
     with torch.no_grad():
         for feats, tokens in loader:
             feats = feats.to(device)
+            tokens = tokens.to(device)
             out_data = model(feats)
             loss = crit(out_data, tokens)
             epoch_loss += loss.item()
@@ -96,7 +96,6 @@ def main():
     if args.dataset == 'cufed':
         dataset = CUFED_tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir, is_train=True)
         val_dataset = CUFED_tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir, is_train=True, is_val=True)
-        crit = nn.CrossEntropyLoss()
     else:
         sys.exit("Unknown dataset!")
 
@@ -110,8 +109,8 @@ def main():
         print("num of val set = {}".format(len(val_dataset)))
 
     start_epoch = 0
-    # model = Model(args.gcn_layers, dataset.NUM_FEATS, args.batch_size, dataset.NUM_FRAMES, dataset.NUM_BOXES).to(device)
     model = Model(args.gcn_layers, dataset.NUM_FEATS, dataset.TOKEN_SIZE, args.mask_percentage).to(device)
+    crit = nn.BCEWithLogitsLoss()
     opt = optim.Adam(model.parameters(), lr=args.lr)
     sched = optim.lr_scheduler.MultiStepLR(opt, milestones=args.milestones)
     early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, threshold=args.threshold)
@@ -142,6 +141,7 @@ def main():
             'epoch': epoch_cnt,
             'loss': train_loss,
             'model_state_dict': model.state_dict(),
+            'graph_state_dict': model.graph.state_dict(), # debug graph co state dict k
             'opt_state_dict': opt.state_dict(),
             'sched_state_dict': sched.state_dict()
         }
