@@ -76,7 +76,7 @@ def train_omega(model, loader,  crit, opt, sched, device):
 
 
 def validate_omega(model, dataset, loader, device):
-    scores = torch.zeros((len(dataset), dataset.NUM_CLASS), dtype=torch.float32)
+    scores = np.zeros((len(dataset), dataset.NUM_CLASS), dtype=np.float32)
     gidx = 0
     model.eval()
     with torch.no_grad():
@@ -87,8 +87,6 @@ def validate_omega(model, dataset, loader, device):
             shape = out_data.shape[0]
             scores[gidx:gidx+shape, :] = out_data.cpu()
             gidx += shape
-        # Change tensors to 1d-arrays
-        scores = scores.numpy()
         map_macro = AP_partial(dataset.labels, scores)[2]
         return map_macro
 
