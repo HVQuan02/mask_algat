@@ -30,7 +30,7 @@ parser.add_argument('--save_path', default='scores.txt', help='output path')
 parser.add_argument('--resume', default=None, help='checkpoint to resume training')
 parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
 parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
-parser.add_argument('--min_delta', type=float, default=0.5, help='min delta of early stopping')
+parser.add_argument('--min_delta', type=float, default=0.1, help='min delta of early stopping')
 parser.add_argument('--threshold', type=float, default=95, help='val mAP threshold of early stopping')
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 args = parser.parse_args()
@@ -122,6 +122,7 @@ def main():
     graph_state_dict = checkpoint['graph_state_dict']
 
     # Create an instance of the omega4_video model and load the pretrained GraphModule
+    print('load graph model from epoch {}'.format(checkpoint['epoch']))
     model = Model(args.gcn_layers, dataset.NUM_FEATS,  dataset.NUM_CLASS).to(device)
     model.graph.load_state_dict(graph_state_dict)
     model.graph.eval()
