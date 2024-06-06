@@ -61,7 +61,7 @@ def AP_partial(targs, preds):
         # compute average precision
         ap[k] = average_precision(scores, targets)
 
-    print('#####DEBUG num -1 classes {} '.format(sum(ap == -1)))
+    # print('#####DEBUG num -1 classes {} '.format(sum(ap == -1)))
     idx_valid_classes = np.where(ap != -1)[0]
     ap_valid = ap[idx_valid_classes]
     map = 100 * np.mean(ap_valid)

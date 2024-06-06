@@ -27,8 +27,8 @@ parser.add_argument('--num_workers', type=int, default=4, help='number of worker
 parser.add_argument('--resume', default=None, help='checkpoint to resume training')
 parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
 parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
-parser.add_argument('--min_delta', type=float, default=0.05, help='min delta of early stopping')
-parser.add_argument('--threshold', type=float, default=0.01, help='val mAP threshold of early stopping')
+parser.add_argument('--min_delta', type=float, default=0.01, help='min delta of early stopping')
+parser.add_argument('--threshold', type=float, default=0.01, help='val loss threshold of early stopping')
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 args = parser.parse_args()
 

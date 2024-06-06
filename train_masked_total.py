@@ -80,22 +80,17 @@ def validate_omega(model, dataset, loader, device):
     gidx = 0
     model.eval()
     with torch.no_grad():
-        for batch in loader:
-            feats, feat_global, _ = batch
-
-            # Run model with all frames
+        for feats, feat_global, _ in loader:
             feats = feats.to(device)
             feat_global = feat_global.to(device)
-            out_data = model(feats, feat_global, device)
-
+            out_data = model(feats, feat_global)
             shape = out_data.shape[0]
-
             scores[gidx:gidx+shape, :] = out_data.cpu()
             gidx += shape
-    # Change tensors to 1d-arrays
-    scores = scores.numpy()
-    map_macro = AP_partial(dataset.labels, scores)[2]
-    return map_macro
+        # Change tensors to 1d-arrays
+        scores = scores.numpy()
+        map_macro = AP_partial(dataset.labels, scores)[2]
+        return map_macro
 
 
 def main():
@@ -131,7 +126,7 @@ def main():
     # Create an instance of the omega4_video model and load the pretrained GraphModule
     model = Model(args.gcn_layers, dataset.NUM_FEATS,  dataset.NUM_CLASS).to(device)
     model.graph.load_state_dict(graph_state_dict)
-    model.graph.eval() # debug
+    model.graph.eval()
     crit = nn.BCEWithLogitsLoss()
     opt = optim.Adam(model.parameters(), lr=args.lr)
     # Different LR
