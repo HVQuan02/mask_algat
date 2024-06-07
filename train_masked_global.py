@@ -58,11 +58,11 @@ class EarlyStopper:
 def train(model, loader, crit, opt, sched, device):
     epoch_loss = 0
     model.train()
-    for feats, tokens in loader:
-        feats = feats.to(device)
+    for _, global_feats, tokens in loader:
+        global_feats = global_feats.to(device)
         tokens = tokens.to(device)
         opt.zero_grad()
-        out_data = model(feats)
+        out_data = model(global_feats)
         loss = crit(out_data, tokens)
         loss.backward()
         opt.step()
@@ -75,10 +75,10 @@ def validate(model, loader, crit, device):
     epoch_loss = 0
     model.eval()
     with torch.no_grad():
-        for feats, tokens in loader:
-            feats = feats.to(device)
+        for _, global_feats, tokens in loader:
+            global_feats = global_feats.to(device)
             tokens = tokens.to(device)
-            out_data = model(feats)
+            out_data = model(global_feats)
             loss = crit(out_data, tokens)
             epoch_loss += loss.item()
     return epoch_loss / len(loader)
@@ -146,10 +146,10 @@ def main():
             'sched_state_dict': sched.state_dict()
         }
 
-        torch.save(model_config, os.path.join(args.save_folder, 'last-masked-ViGAT-{}.pt'.format(args.dataset)))
+        torch.save(model_config, os.path.join(args.save_folder, 'last-global-maskedViGAT-{}.pt'.format(args.dataset)))
 
         if is_save_ckpt:
-            torch.save(model_config, os.path.join(args.save_folder, 'best-masked-ViGAT-{}.pt'.format(args.dataset)))
+            torch.save(model_config, os.path.join(args.save_folder, 'best-global-maskedViGAT-{}.pt'.format(args.dataset)))
 
         if is_early_stopping:
             print('Stop at epoch {}'.format(epoch_cnt)) 

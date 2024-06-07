@@ -112,6 +112,7 @@ class CUFED_tokens(Dataset):
         self.root_dir = root_dir
         self.feats_dir = feats_dir
         self.local_dir = 'clip_local'
+        self.global_dir = 'clip_global'
         self.token_dir = 'token'
         self.NUM_FEATS = 1024
         
@@ -139,8 +140,10 @@ class CUFED_tokens(Dataset):
 
     def __getitem__(self, idx):
         name = self.videos[idx]
-        feat_path = os.path.join(self.feats_dir, self.local_dir, name + '.npy')
+        local_path = os.path.join(self.feats_dir, self.local_dir, name + '.npy')
+        global_path = os.path.join(self.feats_dir, self.global_dir, name + '.npy')
         token_path = os.path.join(self.feats_dir, self.token_dir, name + '.npy')
-        feat = np.load(feat_path)
+        local_feat = np.load(local_path)
+        global_feat = np.load(global_path)
         token = np.load(token_path)
-        return feat, token
+        return local_feat, global_feat, token
