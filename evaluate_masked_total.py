@@ -81,8 +81,9 @@ def evaluate(model, dataset, loader, out_file, device):
     wid_local_matrix = torch.cat(wid_local_list).to(device)
     spearman_global = spearman_correlation(wid_global_matrix, importance_matrix)
     spearman_local = spearman_correlation(wid_local_matrix, importance_matrix)
+    spearman_clip = spearman_correlation(torch.arange(importance_matrix.shape[1], 0, -1).repeat(importance_matrix.shape[0], 1), importance_matrix)
 
-    return map, map_macro, acc, spearman_global, spearman_local, cms, cr
+    return map, map_macro, acc, spearman_global, spearman_local, spearman_clip, cms, cr
 
 
 def main():
@@ -108,13 +109,13 @@ def main():
         out_file = open(args.save_path, 'w')
 
     t0 = time.perf_counter()
-    map, map_macro, acc, spearman_global, spearman_local, cms, cr = evaluate(model, dataset, loader, out_file, device)
+    map, map_macro, acc, spearman_global, spearman_local, spearman_clip, cms, cr = evaluate(model, dataset, loader, out_file, device)
     t1 = time.perf_counter()
 
     if args.save_scores:
         out_file.close()
 
-    print('map={:.2f} map_macro={:.2f} accuracy={:.2f} spearman_global={:.2f} spearman_local={:.2f} dt={:.2f}sec'.format(map, map_macro, acc*100, spearman_global, spearman_local, t1 - t0))
+    print('map={:.2f} map_macro={:.2f} accuracy={:.2f} spearman_global={:.2f} spearman_local={:.2f} spearman_clip={:.2f} dt={:.2f}sec'.format(map, map_macro, acc*100, spearman_global, spearman_local, spearman_clip, t1 - t0))
     print(cr)
     showCM(cms)
 
