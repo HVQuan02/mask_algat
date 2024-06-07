@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from datasets import CUFED
 from utils import AP_partial, spearman_correlation, accuracy
 from sklearn.metrics import multilabel_confusion_matrix, classification_report
-from model import ModelGCNConcAfter as Model
+from model import tokengraph_with_global_part_sharing as Model
 
 
 threshold = 0.8
@@ -18,7 +18,7 @@ parser.add_argument('model', nargs=1, help='trained model')
 parser.add_argument('--gcn_layers', type=int, default=2, help='number of gcn layers')
 parser.add_argument('--dataset', default='cufed', choices=['holidays', 'pec', 'cufed'])
 parser.add_argument('--dataset_root', default='/kaggle/input/thesis-cufed/CUFED', help='dataset root directory')
-parser.add_argument('--feats_dir', default='/kaggle/input/cufed-feats-bb', help='global and local features directory')
+parser.add_argument('--feats_dir', default='/kaggle/input/mask-cufed-feats', help='global and local features directory')
 parser.add_argument('--split_dir', default='/kaggle/input/cufed-full-split', help='train split and val split')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
 parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
@@ -44,24 +44,19 @@ def evaluate(model, dataset, loader, out_file, device):
     importance_list = []
     wid_global_list = []
     wid_local_list = []
+    
     with torch.no_grad():
-        for batch in loader:
-            feats, feat_global, _, importances = batch
-
-            # Run model with all frames
+        for feats, feat_global, _, importances in loader:
             feats = feats.to(device)
             feat_global = feat_global.to(device)
-            out_data, wids_objects, wids_frame_local, wids_frame_global = model(feats, feat_global, device, get_adj=True)
-
+            out_data, wids_objects, wids_frame_local, wids_frame_global = model(feats, feat_global, get_adj=True)
             shape = out_data.shape[0]
-
             if out_file:
                 for j in range(shape):
                     video_name = dataset.videos[gidx + j]
                     out_file.write("{} ".format(video_name))
                     out_file.write(' '.join([str(x.item()) for x in out_data[j, :]]))
                     out_file.write('\n')
-
             scores[gidx:gidx+shape, :] = out_data.cpu()
             gidx += shape
             importance_list.append(importances)

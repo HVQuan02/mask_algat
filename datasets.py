@@ -7,10 +7,10 @@ from torch.utils.data import Dataset
 def get_album_importance(album_imgs, album_importance):
     img_score_dict = {}
     for _, image, score in album_importance:
-        img_score_dict[image] = score
+        img_score_dict[image.split('/')[1]] = score
     importances = np.zeros(len(album_imgs))
     for i, image in enumerate(album_imgs):
-        importances[i] = img_score_dict[image]
+        importances[i] = img_score_dict[image[:-4]]
     return importances
 
 

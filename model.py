@@ -68,16 +68,36 @@ class tokengraph_with_global_part_sharing(nn.Module):
         self.graph_omega = GraphModule(gcn_layers, num_feats)
         self.cls = ClassifierSimple(2*num_feats, num_feats, num_class)
 
-    def forward(self, feats, feats_global):
+    def forward(self, feats, feats_global, get_adj=False):
         N, FR, B, NF = feats.shape
         feats = feats.view(N * FR, B, NF)
-        x = self.graph(feats)
+        
+        if get_adj is False:
+            x = self.graph(feats)
+            x = x.view(N, FR, NF)
+            x = self.graph_omega(x)
+            y = self.graph_omega(feats_global)
+            x = torch.cat([x, y], dim=-1)
+            x = self.cls(x)
+            return x
+        
+        x, adjobj = self.graph(feats, get_adj)
+        adjobj = adjobj.cpu()
+        wids_objects = adjobj.numpy().sum(axis=1)
         x = x.view(N, FR, NF)
-        x = self.graph_omega(x)
-        y = self.graph_omega(feats_global)
+
+        x, adjframelocal = self.graph_omega(x, get_adj)
+        adjframelocal = adjframelocal.cpu()
+        wids_frame_local = adjframelocal.numpy().sum(axis=1)
+
+        y, adjframeglobal = self.graph_omega(feats_global, get_adj)
+        adjframeglobal = adjframeglobal.cpu()
+        wids_frame_global = adjframeglobal.numpy().sum(axis=1)
+
         x = torch.cat([x, y], dim=-1)
         x = self.cls(x)
-        return x
+
+        return x, wids_objects, wids_frame_local, wids_frame_global
 
 
 class MaskedGCN(nn.Module):
