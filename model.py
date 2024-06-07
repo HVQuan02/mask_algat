@@ -101,26 +101,39 @@ class tokengraph_with_global_part_sharing(nn.Module):
 
 
 class MaskedGCN(nn.Module):
-    def __init__(self, gcn_layers, num_feats, L, mask_percentage):
+    def __init__(self, gcn_layers, num_feats, L, mask_percentage, is_global=False):
         super().__init__()
+        self.is_global = is_global
         self.mask_percentage = mask_percentage
         self.masking_p = nn.Parameter(torch.randn(num_feats))  # Learnable masked vector p
         self.graph = GraphModule(gcn_layers, num_feats)
         self.fc = nn.Linear(num_feats, L)  # FC layer to transform F to L
 
     def forward(self, feats):
-        N, FR, B, NF = feats.shape
-        feats = feats.view(N * FR, B, NF)
-        
-        # Masking features for each image
-        for i in range(N * FR):
-            mask_indices = torch.randperm(B)[:int(self.mask_percentage * B)]
-            feats[i, mask_indices] = self.masking_p
+        if self.is_global:
+            N, FR, NF = feats.shape
 
-        x = self.graph(feats)
-        x = x.view(N, FR, -1)
-        x = self.graph(x) # latent representation
-        score_vector = self.fc(x)
+            # Masking features for each album
+            for i in range(N):
+                mask_indices = torch.randperm(FR)[:int(self.mask_percentage * FR)]
+                feats[i, mask_indices] = self.masking_p
+
+            x = self.graph(feats) # latent representation
+            score_vector = self.fc(x)
+
+        else:
+            N, FR, B, NF = feats.shape
+            feats = feats.view(N * FR, B, NF)
+            
+            # Masking features for each image
+            for i in range(N * FR):
+                mask_indices = torch.randperm(B)[:int(self.mask_percentage * B)]
+                feats[i, mask_indices] = self.masking_p
+
+            x = self.graph(feats)
+            x = x.view(N, FR, -1)
+            x = self.graph(x) # latent representation
+            score_vector = self.fc(x)
 
         return score_vector
     

@@ -109,7 +109,7 @@ def main():
         print("num of val set = {}".format(len(val_dataset)))
 
     start_epoch = 0
-    model = Model(args.gcn_layers, dataset.NUM_FEATS, dataset.TOKEN_SIZE, args.mask_percentage).to(device)
+    model = Model(args.gcn_layers, dataset.NUM_FEATS, dataset.TOKEN_SIZE, args.mask_percentage, is_global=True).to(device)
     crit = nn.BCEWithLogitsLoss()
     opt = optim.Adam(model.parameters(), lr=args.lr)
     sched = optim.lr_scheduler.MultiStepLR(opt, milestones=args.milestones)
@@ -141,7 +141,7 @@ def main():
             'epoch': epoch_cnt,
             'loss': train_loss,
             'model_state_dict': model.state_dict(),
-            'graph_state_dict': model.graph.state_dict(), # debug graph co state dict k
+            'graph_state_dict': model.graph.state_dict(),
             'opt_state_dict': opt.state_dict(),
             'sched_state_dict': sched.state_dict()
         }
