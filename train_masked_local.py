@@ -18,7 +18,7 @@ parser.add_argument('--dataset', default='cufed', choices=['holidays', 'pec', 'c
 parser.add_argument('--dataset_root', default='/kaggle/input/thesis-cufed/CUFED', help='dataset root directory')
 parser.add_argument('--feats_dir', default='/kaggle/input/mask-cufed-feats', help='global and local features directory')
 parser.add_argument('--split_dir', default='/kaggle/input/cufed-full-split', help='train split and val split')
-parser.add_argument('--lr', type=float, default=1e-3, help='initial learning rate')
+parser.add_argument('--lr', type=float, default=1e-5, help='initial learning rate')
 parser.add_argument('--milestones', nargs="+", type=int, default=[50, 100], help='milestones of learning decay')
 parser.add_argument('--num_epochs', type=int, default=200, help='number of epochs to train')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')

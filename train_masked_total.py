@@ -13,7 +13,7 @@ from utils import AP_partial
 
 
 parser = argparse.ArgumentParser(description='GCN Video Classification')
-parser.add_argument('model', nargs=1, help='trained model')
+parser.add_argument('model', nargs=2, help='trained model')
 parser.add_argument('--seed', type=int, default=2024, help='seed for randomness')
 parser.add_argument('--gcn_layers', type=int, default=2, help='number of gcn layers')
 parser.add_argument('--dataset', default='cufed', choices=['holidays', 'pec', 'cufed'])
@@ -118,14 +118,21 @@ def main():
     start_epoch = 0
 
     # Load the saved model
-    checkpoint = torch.load(args.model[0])
-    graph_state_dict = checkpoint['graph_state_dict']
+    local_checkpoint = torch.load(args.model[0])
+    global_checkpoint = torch.load(args.model[1])
+
+    local_graph_state_dict = local_checkpoint['graph_state_dict']
+    global_graph_state_dict = global_checkpoint['graph_state_dict']
+
+    print('load local graph model from epoch {}'.format(local_checkpoint['epoch']))
+    print('load global graph model from epoch {}'.format(global_checkpoint['epoch']))
 
     # Create an instance of the omega4_video model and load the pretrained GraphModule
-    print('load graph model from epoch {}'.format(checkpoint['epoch']))
     model = Model(args.gcn_layers, dataset.NUM_FEATS,  dataset.NUM_CLASS).to(device)
-    model.graph.load_state_dict(graph_state_dict)
+    model.graph.load_state_dict(local_graph_state_dict)
+    model.graph_omega.load_state_dict(global_graph_state_dict)
     model.graph.eval()
+    model.graph_omega.eval()
     crit = nn.BCEWithLogitsLoss()
     opt = optim.Adam(model.parameters(), lr=args.lr)
     # Different LR
