@@ -81,7 +81,7 @@ def evaluate(model, dataset, loader, out_file, device):
     wid_local_matrix = torch.cat(wid_local_list).to(device)
     spearman_global = spearman_correlation(wid_global_matrix, importance_matrix)
     spearman_local = spearman_correlation(wid_local_matrix, importance_matrix)
-    spearman_clip = spearman_correlation(torch.arange(importance_matrix.shape[1], 0, -1).repeat(importance_matrix.shape[0], 1), importance_matrix)
+    spearman_clip = spearman_correlation(torch.arange(importance_matrix.shape[1], 0, -1).repeat(importance_matrix.shape[0], 1).to(device), importance_matrix)
 
     return map, map_macro, acc, spearman_global, spearman_local, spearman_clip, cms, cr
 
