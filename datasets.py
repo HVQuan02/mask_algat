@@ -43,8 +43,10 @@ class CUFED(Dataset):
 
         if self.phase == 'train':
             split_path = os.path.join(split_dir, 'train_split.txt')
-        else:
+        elif self.phase == 'val':
             split_path = os.path.join(split_dir, 'val_split.txt')
+        else:
+            split_path = os.path.join(split_dir, 'test_split.txt')
 
         label_path = os.path.join(root_dir, "event_type.json")
         with open(label_path, 'r') as f:
@@ -108,7 +110,7 @@ class CUFED_tokens(Dataset):
                     'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                     'UrbanTrip', 'Wedding', 'Zoo']
 
-    def __init__(self, root_dir, feats_dir, split_dir, is_train, is_val=False):
+    def __init__(self, root_dir, feats_dir, split_dir, is_train = True):
         self.root_dir = root_dir
         self.feats_dir = feats_dir
         self.local_dir = 'clip_local'
@@ -117,21 +119,25 @@ class CUFED_tokens(Dataset):
         self.NUM_FEATS = 1024
         
         if is_train:
-            if is_val:
-                self.phase = 'val'
-            else:
-                self.phase = 'train'
+            self.phase = 'train'
         else:
-            self.phase = 'test'
-
+            self.phase = 'val'
+            
         if self.phase == 'train':
-            split_path = os.path.join(split_dir, 'train_split.txt')
+            train_path = os.path.join(split_dir, 'train_split.txt')
+            val_path = os.path.join(split_dir, 'val_split.txt')
+            with open(train_path, 'r') as f:
+                album_names = f.readlines()
+            train_list = [name.strip() for name in album_names]
+            with open(val_path, 'r') as f:
+                album_names = f.readlines()
+            val_list = [name.strip() for name in album_names]
+            vidname_list = train_list + val_list
         else:
-            split_path = os.path.join(split_dir, 'val_split.txt')
-
-        with open(split_path, 'r') as f:
-            album_names = f.readlines()
-        vidname_list = [name.strip() for name in album_names]
+            test_path = os.path.join(split_dir, 'test_split.txt')
+            with open(test_path, 'r') as f:
+                album_names = f.readlines()
+            vidname_list = [name.strip() for name in album_names]
         
         self.videos = vidname_list
 

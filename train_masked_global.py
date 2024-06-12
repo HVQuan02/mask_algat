@@ -94,8 +94,8 @@ def main():
         os.mkdir(args.save_folder)
 
     if args.dataset == 'cufed':
-        dataset = CUFED_tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir, is_train=True)
-        val_dataset = CUFED_tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir, is_train=True, is_val=True)
+        dataset = CUFED_tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir)
+        val_dataset = CUFED_tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir, is_train=False)
     else:
         sys.exit("Unknown dataset!")
 
