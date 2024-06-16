@@ -5,7 +5,8 @@ import torch.nn as nn
 import sys
 from torch.utils.data import DataLoader
 from datasets import CUFED
-from utils import AP_partial, spearman_correlation, accuracy
+from utils import AP_partial, spearman_correlation
+from sklearn.metrics import accuracy_score
 from sklearn.metrics import multilabel_confusion_matrix, classification_report
 from model import tokengraph_with_global_part_sharing as Model
 
@@ -71,7 +72,7 @@ def evaluate(model, dataset, loader, out_file, device):
 
     map, map_macro = AP_partial(dataset.labels, scores)[1:3]
 
-    acc = accuracy(dataset.labels, preds)
+    acc = accuracy_score(dataset.labels, preds)
 
     cms = multilabel_confusion_matrix(dataset.labels, preds)
     cr = classification_report(dataset.labels, preds)
