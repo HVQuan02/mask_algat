@@ -3,14 +3,6 @@ import json
 import numpy as np
 from torch.utils.data import Dataset
 
-def get_album_importance(album_imgs, album_importance):
-    img_score_dict = {}
-    for _, image, score in album_importance:
-        img_score_dict[image.split('/')[1]] = score
-    importances = np.zeros(len(album_imgs))
-    for i, image in enumerate(album_imgs):
-        importances[i] = img_score_dict[image[:-4]]
-    return importances
 
 class CUFED(Dataset):
     NUM_CLASS = 23
@@ -22,6 +14,15 @@ class CUFED(Dataset):
                     'PersonalArtActivity', 'PersonalMusicActivity', 'PersonalSports',
                     'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                     'UrbanTrip', 'Wedding', 'Zoo']
+
+    def get_album_importance(self, album_imgs, album_importance):
+        img_score_dict = {}
+        for _, image, score in album_importance:
+            img_score_dict[image.split('/')[1]] = score
+        importances = np.zeros(len(album_imgs))
+        for i, image in enumerate(album_imgs):
+            importances[i] = img_score_dict[image[:-4]]
+        return importances
 
     def __init__(self, root_dir, feats_dir, split_dir, is_train=False):
         self.root_dir = root_dir
@@ -85,7 +86,7 @@ class CUFED(Dataset):
         if self.phase == 'test':
             album_importance = self.importance[name]
             album_imgs = self.album_imgs[name]
-            importances = get_album_importance(album_imgs, album_importance)
+            importances = self.get_album_importance(album_imgs, album_importance)
             return feat_local, feat_global, label, importances
         
         return feat_local, feat_global, label

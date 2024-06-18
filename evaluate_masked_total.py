@@ -10,10 +10,6 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import multilabel_confusion_matrix, classification_report
 from model import tokengraph_with_global_part_sharing as Model
 
-
-threshold = 0.8
-
-
 parser = argparse.ArgumentParser(description='GCN Album Classification')
 parser.add_argument('model', nargs=1, help='trained model')
 parser.add_argument('--gcn_layers', type=int, default=2, help='number of gcn layers')
@@ -25,6 +21,7 @@ parser.add_argument('--batch_size', type=int, default=64, help='batch size')
 parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
 parser.add_argument('--save_scores', action='store_true', help='save the output scores')
 parser.add_argument('--save_path', default='scores.txt', help='output path')
+parser.add_argument('--threshold', type=float, default=0.75, help='threshold for logits to labels')
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 args = parser.parse_args()
 
@@ -64,10 +61,10 @@ def evaluate(model, dataset, loader, out_file, device):
             wid_global_list.append(torch.from_numpy(wids_frame_global))
             wid_local_list.append(torch.from_numpy(wids_frame_local))
     
-    m = nn.Softmax(dim=1)
+    m = nn.Sigmoid(dim=1)
     preds = m(scores)
-    preds[preds >= threshold] = 1
-    preds[preds < threshold] = 0
+    preds[preds >= args.threshold] = 1
+    preds[preds < args.threshold] = 0
     scores, preds = scores.numpy(), preds.numpy()
 
     map, map_macro = AP_partial(dataset.labels, scores)[1:3]
@@ -116,7 +113,7 @@ def main():
     if args.save_scores:
         out_file.close()
 
-    print('map={:.2f} map_macro={:.2f} accuracy={:.2f} spearman_global={:.2f} spearman_local={:.2f} spearman_clip={:.2f} dt={:.2f}sec'.format(map, map_macro, acc*100, spearman_global, spearman_local, spearman_clip, t1 - t0))
+    print('map={:.2f} map_macro={:.2f} accuracy={:.2f} spearman_global={:.2f} spearman_local={:.2f} spearman_clip={:.2f} dt={:.2f}sec'.format(map, map_macro, acc * 100, spearman_global, spearman_local, spearman_clip, t1 - t0))
     print(cr)
     showCM(cms)
 
