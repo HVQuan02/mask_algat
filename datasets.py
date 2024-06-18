@@ -3,7 +3,6 @@ import json
 import numpy as np
 from torch.utils.data import Dataset
 
-
 def get_album_importance(album_imgs, album_importance):
     img_score_dict = {}
     for _, image, score in album_importance:
@@ -12,7 +11,6 @@ def get_album_importance(album_imgs, album_importance):
     for i, image in enumerate(album_imgs):
         importances[i] = img_score_dict[image[:-4]]
     return importances
-
 
 class CUFED(Dataset):
     NUM_CLASS = 23
@@ -25,15 +23,12 @@ class CUFED(Dataset):
                     'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                     'UrbanTrip', 'Wedding', 'Zoo']
 
-    def __init__(self, root_dir, feats_dir, split_dir, is_train, is_val=False):
+    def __init__(self, root_dir, feats_dir, split_dir, is_train=False):
         self.root_dir = root_dir
         self.feats_dir = feats_dir
         
         if is_train:
-            if is_val:
-                self.phase = 'val'
-            else:
-                self.phase = 'train'
+            self.phase = 'train'
         else:
             self.phase = 'test'
             
@@ -43,10 +38,12 @@ class CUFED(Dataset):
 
         if self.phase == 'train':
             split_path = os.path.join(split_dir, 'train_split.txt')
-        elif self.phase == 'val':
-            split_path = os.path.join(split_dir, 'val_split.txt')
         else:
             split_path = os.path.join(split_dir, 'test_split.txt')
+
+        with open(split_path, 'r') as f:
+            album_names = f.readlines()
+        vidname_list = [name.strip() for name in album_names]
 
         label_path = os.path.join(root_dir, "event_type.json")
         with open(label_path, 'r') as f:
@@ -63,10 +60,6 @@ class CUFED(Dataset):
                 
             self.importance = album_importance
             self.album_imgs = album_imgs
-
-        with open(split_path, 'r') as f:
-            album_names = f.readlines()
-        vidname_list = [name.strip() for name in album_names]
 
         labels_np = np.zeros((len(vidname_list), self.NUM_CLASS), dtype=np.float32)
         for i, vidname in enumerate(vidname_list):
@@ -97,11 +90,11 @@ class CUFED(Dataset):
         
         return feat_local, feat_global, label
 
-
 class CUFED_tokens(Dataset):
     NUM_CLASS = 23
     NUM_FRAMES = 30
     NUM_BOXES = 50
+    NUM_FEATS = 1024
     TOKEN_SIZE = 8192
     event_labels = ['Architecture', 'BeachTrip', 'Birthday', 'BusinessActivity',
                     'CasualFamilyGather', 'Christmas', 'Cruise', 'Graduation',
@@ -110,34 +103,26 @@ class CUFED_tokens(Dataset):
                     'Protest', 'ReligiousActivity', 'Show', 'Sports', 'ThemePark',
                     'UrbanTrip', 'Wedding', 'Zoo']
 
-    def __init__(self, root_dir, feats_dir, split_dir, is_train = True):
+    def __init__(self, root_dir, feats_dir, split_dir, is_train=True):
         self.root_dir = root_dir
         self.feats_dir = feats_dir
         self.local_dir = 'clip_local'
         self.global_dir = 'clip_global'
         self.token_dir = 'token'
-        self.NUM_FEATS = 1024
         
         if is_train:
             self.phase = 'train'
         else:
-            self.phase = 'val'
+            self.phase = 'test'
             
         if self.phase == 'train':
-            train_path = os.path.join(split_dir, 'train_split.txt')
-            val_path = os.path.join(split_dir, 'val_split.txt')
-            with open(train_path, 'r') as f:
-                album_names = f.readlines()
-            train_list = [name.strip() for name in album_names]
-            with open(val_path, 'r') as f:
-                album_names = f.readlines()
-            val_list = [name.strip() for name in album_names]
-            vidname_list = train_list + val_list
+            split_path = os.path.join(split_dir, 'train_split.txt')
         else:
-            test_path = os.path.join(split_dir, 'test_split.txt')
-            with open(test_path, 'r') as f:
-                album_names = f.readlines()
-            vidname_list = [name.strip() for name in album_names]
+            split_path = os.path.join(split_dir, 'test_split.txt')
+
+        with open(split_path, 'r') as f:
+            album_names = f.readlines()
+        vidname_list = [name.strip() for name in album_names]
         
         self.videos = vidname_list
 
@@ -146,10 +131,13 @@ class CUFED_tokens(Dataset):
 
     def __getitem__(self, idx):
         name = self.videos[idx]
+
         local_path = os.path.join(self.feats_dir, self.local_dir, name + '.npy')
         global_path = os.path.join(self.feats_dir, self.global_dir, name + '.npy')
         token_path = os.path.join(self.feats_dir, self.token_dir, name + '.npy')
+
         local_feat = np.load(local_path)
         global_feat = np.load(global_path)
         token = np.load(token_path)
+
         return local_feat, global_feat, token

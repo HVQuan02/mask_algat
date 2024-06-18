@@ -10,11 +10,10 @@ from torch.utils.data import DataLoader
 from datasets import CUFED_tokens
 from model import MaskedGCN as Model
 
-
-parser = argparse.ArgumentParser(description='GCN Video Clasmsification')
+parser = argparse.ArgumentParser(description='GCN Album Classification')
 parser.add_argument('--seed', type=int, default=2024, help='seed for randomness')
 parser.add_argument('--gcn_layers', type=int, default=2, help='number of gcn layers')
-parser.add_argument('--dataset', default='cufed', choices=['holidays', 'pec', 'cufed'])
+parser.add_argument('--dataset', default='cufed', choices=['pec', 'cufed'])
 parser.add_argument('--dataset_root', default='/kaggle/input/thesis-cufed/CUFED', help='dataset root directory')
 parser.add_argument('--feats_dir', default='/kaggle/input/mask-cufed-feats', help='global and local features directory')
 parser.add_argument('--split_dir', default='/kaggle/input/cufed-full-split', help='train split and val split')
@@ -26,23 +25,22 @@ parser.add_argument('--mask_percentage', type=float, default=0.4, help='percenta
 parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
 parser.add_argument('--resume', default=None, help='checkpoint to resume training')
 parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
-parser.add_argument('--patience', type=int, default=30, help='patience of early stopping')
+parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
 parser.add_argument('--min_delta', type=float, default=1e-4, help='min delta of early stopping')
-parser.add_argument('--threshold', type=float, default=0.01, help='val loss threshold of early stopping')
+parser.add_argument('--stopping_threshold', type=float, default=0.01, help='val loss stopping_threshold of early stopping')
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 args = parser.parse_args()
 
-
 class EarlyStopper:
-    def __init__(self, patience, min_delta, threshold):
+    def __init__(self, patience, min_delta, stopping_threshold):
         self.patience = patience
         self.min_delta = min_delta
         self.counter = 0
         self.min_val_loss = float('inf')
-        self.threshold = threshold
+        self.stopping_threshold = stopping_threshold
 
     def early_stop(self, min_val_loss):
-        if min_val_loss <= self.threshold:
+        if min_val_loss <= self.stopping_threshold:
             return True, True
         if min_val_loss < self.min_val_loss:
             self.min_val_loss = min_val_loss
@@ -53,7 +51,6 @@ class EarlyStopper:
             if self.counter > self.patience:
                 return True, False
         return False, False
-
 
 def train(model, loader, crit, opt, sched, device):
     epoch_loss = 0
@@ -70,7 +67,6 @@ def train(model, loader, crit, opt, sched, device):
     sched.step()
     return epoch_loss / len(loader)
 
-
 def validate(model, loader, crit, device):
     epoch_loss = 0
     model.eval()
@@ -82,7 +78,6 @@ def validate(model, loader, crit, device):
             loss = crit(out_data, tokens)
             epoch_loss += loss.item()
     return epoch_loss / len(loader)
-
 
 def main():
     if args.seed:
@@ -113,7 +108,7 @@ def main():
     crit = nn.BCEWithLogitsLoss()
     opt = optim.Adam(model.parameters(), lr=args.lr)
     sched = optim.lr_scheduler.MultiStepLR(opt, milestones=args.milestones)
-    early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, threshold=args.threshold)
+    early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, stopping_threshold=args.stopping_threshold)
 
     if args.resume:
         data = torch.load(args.resume)

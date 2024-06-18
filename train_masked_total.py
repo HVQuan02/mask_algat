@@ -11,14 +11,13 @@ from datasets import CUFED
 from model import tokengraph_with_global_part_sharing as Model
 from utils import AP_partial
 
-
-parser = argparse.ArgumentParser(description='GCN Video Classification')
+parser = argparse.ArgumentParser(description='GCN Album Classification')
 parser.add_argument('model', nargs='+', help='trained model')
 parser.add_argument('--seed', type=int, default=2024, help='seed for randomness')
 parser.add_argument('-L', '--use_local', action='store_true', help='use pretrained local model or not')
 parser.add_argument('-G', '--use_global', action='store_true', help='use pretrained global model or not')
 parser.add_argument('--gcn_layers', type=int, default=2, help='number of gcn layers')
-parser.add_argument('--dataset', default='cufed', choices=['holidays', 'pec', 'cufed'])
+parser.add_argument('--dataset', default='cufed', choices=['pec', 'cufed'])
 parser.add_argument('--dataset_root', default='/kaggle/input/thesis-cufed/CUFED', help='dataset root directory')
 parser.add_argument('--feats_dir', default='/kaggle/input/mask-cufed-feats', help='global and local features directory')
 parser.add_argument('--split_dir', default='/kaggle/input/cufed-full-split', help='train split and val split')
@@ -31,23 +30,22 @@ parser.add_argument('--save_scores', action='store_true', help='save the output 
 parser.add_argument('--save_path', default='scores.txt', help='output path')
 parser.add_argument('--resume', default=None, help='checkpoint to resume training')
 parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
-parser.add_argument('--patience', type=int, default=30, help='patience of early stopping')
+parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
 parser.add_argument('--min_delta', type=float, default=0.1, help='min delta of early stopping')
-parser.add_argument('--threshold', type=float, default=95, help='val mAP threshold of early stopping')
+parser.add_argument('--stopping_threshold', type=float, default=95, help='val mAP stopping_threshold of early stopping')
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 args = parser.parse_args()
 
-
 class EarlyStopper:
-    def __init__(self, patience, min_delta, threshold):
+    def __init__(self, patience, min_delta, stopping_threshold):
         self.patience = patience
         self.min_delta = min_delta
         self.counter = 0
         self.max_validation_mAP = -float('inf')
-        self.threshold = threshold
+        self.stopping_threshold = stopping_threshold
 
     def early_stop(self, validation_mAP):
-        if validation_mAP >= self.threshold:
+        if validation_mAP >= self.stopping_threshold:
             return True, True
         if validation_mAP > self.max_validation_mAP:
             self.max_validation_mAP = validation_mAP
@@ -58,7 +56,6 @@ class EarlyStopper:
             if self.counter > self.patience:
                 return True, False
         return False, False
-
 
 def train_omega(model, loader,  crit, opt, sched, device):
     epoch_loss = 0
@@ -76,7 +73,6 @@ def train_omega(model, loader,  crit, opt, sched, device):
     sched.step()
     return epoch_loss / len(loader)
 
-
 def validate_omega(model, dataset, loader, device):
     scores = np.zeros((len(dataset), dataset.NUM_CLASS), dtype=np.float32)
     gidx = 0
@@ -91,7 +87,6 @@ def validate_omega(model, dataset, loader, device):
             gidx += shape
         map_macro = AP_partial(dataset.labels, scores)[2]
         return map_macro
-
 
 def main():
     if args.seed:
@@ -138,16 +133,8 @@ def main():
 
     crit = nn.BCEWithLogitsLoss()
     opt = optim.Adam(model.parameters(), lr=args.lr)
-    # Different LR
-    # Separate parameter groups for graph and graph_omega3 modules
-    #parameters = [
-    #    {"params": model.graph.parameters(), "lr": 1e-5},  # Set desired learning rate for graph
-    #    {"params": model.graph_omega.parameters(), "lr": args.lr},  # Set desired learning rate for graph_omega3
-    #    {"params": model.cls.parameters()}  # Use default learning rate for cls module
-    #]
-    #opt = optim.Adam(parameters, lr=opt.param_groups[0]['lr'])
     sched = optim.lr_scheduler.MultiStepLR(opt, milestones=args.milestones)
-    early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, threshold=args.threshold)
+    early_stopper = EarlyStopper(patience=args.patience, min_delta=args.min_delta, stopping_threshold=args.stopping_threshold)
 
     if args.resume:
         data = torch.load(args.resume)
