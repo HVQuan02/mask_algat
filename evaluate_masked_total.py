@@ -1,5 +1,6 @@
 import argparse
 import time
+import numpy as np
 import torch
 import torch.nn as nn
 import sys
@@ -40,7 +41,7 @@ def evaluate(model, dataset, loader, out_file, device):
             # Run model with all frames
             feats = feats.to(device)
             feat_global = feat_global.to(device)
-            out_data, wids_objects, wids_frame_local, wids_frame_global = model(feats, feat_global, device, get_adj=True)
+            out_data, wids_objects, wids_frame_local, wids_frame_global = model(feats, feat_global, get_adj=True)
             shape = out_data.shape[0]
             
             if out_file:
@@ -107,7 +108,7 @@ def main():
     if args.save_scores:
         out_file.close()
 
-    print('map={:.2f} map_macro={:.2f} accuracy={:.2f} spearman_global={:.2f} spearman_local={:.2f} spearman_clip={:.2f} dt={:.2f}sec'.format(map_micro, map_macro, acc * 100, spearman_global, spearman_local, t1 - t0))
+    print('map_micro={:.2f} map_macro={:.2f} accuracy={:.2f} spearman_global={:.2f} spearman_local={:.2f} dt={:.2f}sec'.format(map_micro, map_macro, acc * 100, spearman_global, spearman_local, t1 - t0))
     print(cr)
     showCM(cms)
 
