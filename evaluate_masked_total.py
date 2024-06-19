@@ -5,7 +5,7 @@ import torch.nn as nn
 import sys
 from torch.utils.data import DataLoader
 from datasets import CUFED
-from utils import AP_partial, spearman_correlation
+from utils import AP_partial, spearman_correlation, showCM
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import multilabel_confusion_matrix, classification_report
 from model import tokengraph_with_global_part_sharing as Model
@@ -25,49 +25,45 @@ parser.add_argument('--threshold', type=float, default=0.75, help='threshold for
 parser.add_argument('-v', '--verbose', action='store_true', help='show details')
 args = parser.parse_args()
 
-
-def showCM(cms):
-    for i, cm in enumerate(cms):
-        print(f"Confusion Matrix for Class {i + 1}")
-        print("True \\ Pred", "  0  ", "  1  ")
-        print("     0      ", f"{cm[0, 0]:<5}", f"{cm[0, 1]:<5}")
-        print("     1      ", f"{cm[1, 0]:<5}", f"{cm[1, 1]:<5}")
-        print("\n" + "-" * 20 + "\n")
-        
-
 def evaluate(model, dataset, loader, out_file, device):
     scores = torch.zeros((len(dataset), dataset.NUM_CLASS), dtype=torch.float32)
     gidx = 0
     model.eval()
     importance_list = []
-    wid_global_list = []
-    wid_local_list = []
-    
+    frame_wid_list = []
+    obj_wid_list = []
+
     with torch.no_grad():
-        for feats, feat_global, _, importances in loader:
+        for batch in loader:
+            feats, feat_global, _, importances = batch
+
+            # Run model with all frames
             feats = feats.to(device)
             feat_global = feat_global.to(device)
-            out_data, wids_objects, wids_frame_local, wids_frame_global = model(feats, feat_global, get_adj=True)
+            out_data, wids_objects, wids_frame_local, wids_frame_global = model(feats, feat_global, device, get_adj=True)
             shape = out_data.shape[0]
+            
             if out_file:
                 for j in range(shape):
                     video_name = dataset.videos[gidx + j]
                     out_file.write("{} ".format(video_name))
                     out_file.write(' '.join([str(x.item()) for x in out_data[j, :]]))
                     out_file.write('\n')
+
             scores[gidx:gidx+shape, :] = out_data.cpu()
             gidx += shape
             importance_list.append(importances)
-            wid_global_list.append(torch.from_numpy(wids_frame_global))
-            wid_local_list.append(torch.from_numpy(wids_frame_local))
+            avg_frame_wid = (wids_frame_local + wids_frame_global) / 2
+            frame_wid_list.append(torch.from_numpy(avg_frame_wid))
+            obj_wid_list.append(torch.from_numpy(np.reshape(wids_objects.mean(axis=1), (shape, -1))))
     
-    m = nn.Sigmoid(dim=1)
+    m = nn.Sigmoid()
     preds = m(scores)
     preds[preds >= args.threshold] = 1
     preds[preds < args.threshold] = 0
     scores, preds = scores.numpy(), preds.numpy()
 
-    map, map_macro = AP_partial(dataset.labels, scores)[1:3]
+    map_micro, map_macro = AP_partial(dataset.labels, scores)[1:3]
 
     acc = accuracy_score(dataset.labels, preds)
 
@@ -75,14 +71,12 @@ def evaluate(model, dataset, loader, out_file, device):
     cr = classification_report(dataset.labels, preds)
     
     importance_matrix = torch.cat(importance_list).to(device)
-    wid_global_matrix = torch.cat(wid_global_list).to(device)
-    wid_local_matrix = torch.cat(wid_local_list).to(device)
-    spearman_global = spearman_correlation(wid_global_matrix, importance_matrix)
-    spearman_local = spearman_correlation(wid_local_matrix, importance_matrix)
-    spearman_clip = spearman_correlation(torch.arange(importance_matrix.shape[1], 0, -1).repeat(importance_matrix.shape[0], 1).to(device), importance_matrix)
+    wid_frame_matrix = torch.cat(frame_wid_list).to(device)
+    wid_obj_matrix = torch.cat(obj_wid_list).to(device)
+    frame_spearman = spearman_correlation(wid_frame_matrix, importance_matrix)
+    obj_spearman = spearman_correlation(wid_obj_matrix, importance_matrix)
 
-    return map, map_macro, acc, spearman_global, spearman_local, spearman_clip, cms, cr
-
+    return map_micro, map_macro, acc, frame_spearman, obj_spearman, cms, cr
 
 def main():
     if args.dataset == 'cufed':
@@ -107,13 +101,13 @@ def main():
         out_file = open(args.save_path, 'w')
 
     t0 = time.perf_counter()
-    map, map_macro, acc, spearman_global, spearman_local, spearman_clip, cms, cr = evaluate(model, dataset, loader, out_file, device)
+    map_micro, map_macro, acc, spearman_global, spearman_local, cms, cr = evaluate(model, dataset, loader, out_file, device)
     t1 = time.perf_counter()
 
     if args.save_scores:
         out_file.close()
 
-    print('map={:.2f} map_macro={:.2f} accuracy={:.2f} spearman_global={:.2f} spearman_local={:.2f} spearman_clip={:.2f} dt={:.2f}sec'.format(map, map_macro, acc * 100, spearman_global, spearman_local, spearman_clip, t1 - t0))
+    print('map={:.2f} map_macro={:.2f} accuracy={:.2f} spearman_global={:.2f} spearman_local={:.2f} spearman_clip={:.2f} dt={:.2f}sec'.format(map_micro, map_macro, acc * 100, spearman_global, spearman_local, t1 - t0))
     print(cr)
     showCM(cms)
 

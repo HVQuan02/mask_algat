@@ -3,7 +3,6 @@ import json
 import numpy as np
 from torch.utils.data import Dataset
 
-
 class CUFED(Dataset):
     NUM_CLASS = 23
     NUM_FRAMES = 30
@@ -24,7 +23,7 @@ class CUFED(Dataset):
             importances[i] = img_score_dict[image[:-4]]
         return importances
 
-    def __init__(self, root_dir, feats_dir, split_dir, is_train=False):
+    def __init__(self, root_dir, feats_dir, split_dir, is_train=True):
         self.root_dir = root_dir
         self.feats_dir = feats_dir
         

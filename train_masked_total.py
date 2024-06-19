@@ -57,7 +57,7 @@ class EarlyStopper:
                 return True, False
         return False, False
 
-def train_omega(model, loader,  crit, opt, sched, device):
+def train_omega(model, loader, crit, opt, sched, device):
     epoch_loss = 0
     model.train()
     for feats, feats_global, label in loader:
@@ -78,7 +78,7 @@ def validate_omega(model, dataset, loader, device):
     gidx = 0
     model.eval()
     with torch.no_grad():
-        for feats, feat_global, _ in loader:
+        for feats, feat_global, _, _ in loader:
             feats = feats.to(device)
             feat_global = feat_global.to(device)
             out_data = model(feats, feat_global)
