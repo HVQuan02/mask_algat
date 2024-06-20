@@ -10,7 +10,6 @@ from model import MaskedGCN as Model
 from torch.utils.data import DataLoader
 from options.train_global_options import TrainGlobalOptions
 
-
 args = TrainGlobalOptions().parse()
 
 

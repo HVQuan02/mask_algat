@@ -10,7 +10,6 @@ from utils import AP_partial, spearman_correlation, showCM
 from model import tokengraph_with_global_part_sharing as Model
 from sklearn.metrics import multilabel_confusion_matrix, classification_report
 
-
 args = TestOptions().parse()
 
 
