@@ -2,13 +2,14 @@ import sys
 import time
 import torch
 import torch.nn as nn
-from datasets import CUFED
+from dataset import CUFED
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score
 from options.test_options import TestOptions
 from utils import AP_partial, spearman_correlation, showCM
 from model import tokengraph_with_global_part_sharing as Model
 from sklearn.metrics import multilabel_confusion_matrix, classification_report
+
 
 args = TestOptions().parse()
 
@@ -41,7 +42,7 @@ def evaluate(model, dataset, loader, out_file, device):
             gidx += shape
             importance_list.append(importances)
             avg_frame_wid = (wids_frame_local + wids_frame_global) / 2
-            frame_wid_list.append(avg_frame_wid)
+            frame_wid_list.append(torch.from_numpy(avg_frame_wid))
     
     m = nn.Sigmoid()
     preds = m(scores)

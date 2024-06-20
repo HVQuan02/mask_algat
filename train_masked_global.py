@@ -5,7 +5,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
-from datasets import CUFED_tokens
+from dataset import CUFED_tokens
 from model import MaskedGCN as Model
 from torch.utils.data import DataLoader
 from options.train_global_options import TrainGlobalOptions

@@ -2,10 +2,9 @@ import os
 import sys
 import time
 import torch
-import argparse
 import numpy as np
 import torch.nn as nn
-from datasets import CUFED
+from dataset import CUFED
 import torch.optim as optim
 from utils import AP_partial
 from torch.utils.data import DataLoader
