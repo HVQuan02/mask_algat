@@ -9,33 +9,10 @@ from datasets import CUFED
 import torch.optim as optim
 from utils import AP_partial
 from torch.utils.data import DataLoader
+from options.train_total_options import TrainTotalOptions
 from model import tokengraph_with_global_part_sharing as Model
 
-
-parser = argparse.ArgumentParser(description='GCN Album Classification')
-parser.add_argument('model', nargs='+', help='trained model')
-parser.add_argument('--dataset', default='cufed', choices=['pec', 'cufed'])
-parser.add_argument('--seed', type=int, default=2024, help='seed for randomness')
-parser.add_argument('--gcn_layers', type=int, default=2, help='number of gcn layers')
-parser.add_argument('-L', '--use_local', action='store_true', help='use pretrained local model or not')
-parser.add_argument('-G', '--use_global', action='store_true', help='use pretrained global model or not')
-parser.add_argument('--dataset_root', default='/kaggle/input/thesis-cufed/CUFED', help='dataset root directory')
-parser.add_argument('--feats_dir', default='/kaggle/input/mask-cufed-feats', help='global and local features directory')
-parser.add_argument('--split_dir', default='/kaggle/input/cufed-full-split', help='train split and val split')
-parser.add_argument('--lr', type=float, default=1e-4, help='initial learning rate')
-parser.add_argument('--milestones', nargs="+", type=int, default=[110, 160], help='milestones of learning decay')
-parser.add_argument('--num_epochs', type=int, default=200, help='number of epochs to train')
-parser.add_argument('--batch_size', type=int, default=32, help='batch size')
-parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
-parser.add_argument('--save_scores', action='store_true', help='save the output scores')
-parser.add_argument('--save_path', default='scores.txt', help='output path')
-parser.add_argument('--resume', default=None, help='checkpoint to resume training')
-parser.add_argument('--save_folder', default='weights', help='directory to save checkpoints')
-parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
-parser.add_argument('--min_delta', type=float, default=0.1, help='min delta of early stopping')
-parser.add_argument('--stopping_threshold', type=float, default=99, help='val mAP stopping_threshold of early stopping')
-parser.add_argument('-v', '--verbose', action='store_true', help='show details')
-args = parser.parse_args()
+args = TrainTotalOptions().parse()
 
 
 class EarlyStopper:
@@ -104,8 +81,8 @@ def main():
         torch.manual_seed(args.seed)
         torch.cuda.manual_seed(args.seed)
 
-    if not os.path.exists(args.save_folder):
-        os.mkdir(args.save_folder)
+    if not os.path.exists(args.save_dir):
+        os.mkdir(args.save_dir)
 
     if args.dataset == 'cufed':
         train_dataset = CUFED(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir)
@@ -174,10 +151,10 @@ def main():
             'sched_state_dict': sched.state_dict()
         }
 
-        torch.save(model_config, os.path.join(args.save_folder, 'last_total_mask_algat_{}.pt'.format(args.dataset)))
+        torch.save(model_config, os.path.join(args.save_dir, 'last_total_mask_algat_{}.pt'.format(args.dataset)))
 
         if is_save_ckpt:
-            torch.save(model_config, os.path.join(args.save_folder, 'best_total_mask_algat_{}.pt'.format(args.dataset)))
+            torch.save(model_config, os.path.join(args.save_dir, 'best_total_mask_algat_{}.pt'.format(args.dataset)))
 
         if is_early_stopping:
             print('Early stop at epoch {}'.format(epoch_cnt)) 

@@ -2,35 +2,16 @@ import os
 import sys
 import time
 import torch
-import argparse
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 from datasets import CUFED_tokens
 from model import MaskedGCN as Model
 from torch.utils.data import DataLoader
+from options.train_local_options import TrainLocalOptions
 
 
-parser = argparse.ArgumentParser(description='GCN Album Classification')
-parser.add_argument('--seed', type=int, default=2024, help='seed for randomness')
-parser.add_argument('--gcn_layers', type=int, default=2, help='number of gcn layers')
-parser.add_argument('--dataset', default='cufed', choices=['pec', 'cufed'])
-parser.add_argument('--dataset_root', default='/kaggle/input/thesis-cufed/CUFED', help='dataset root directory')
-parser.add_argument('--feats_dir', default='/kaggle/input/mask-cufed-feats', help='global and local features directory')
-parser.add_argument('--split_dir', default='/kaggle/input/cufed-full-split', help='train split and val split')
-parser.add_argument('--lr', type=float, default=1e-3, help='initial learning rate')
-parser.add_argument('--milestones', nargs="+", type=int, default=[50, 100], help='milestones of learning decay')
-parser.add_argument('--num_epochs', type=int, default=200, help='number of epochs to train')
-parser.add_argument('--batch_size', type=int, default=64, help='batch size')
-parser.add_argument('--mask_percentage', type=float, default=0.4, help='percentage of masked features')
-parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
-parser.add_argument('--resume', default=None, help='checkpoint to resume training')
-parser.add_argument('--save_dir', default='weights', help='directory to save checkpoints')
-parser.add_argument('--patience', type=int, default=20, help='patience of early stopping')
-parser.add_argument('--min_delta', type=float, default=1e-4, help='min delta of early stopping')
-parser.add_argument('--stopping_threshold', type=float, default=0.01, help='val loss stopping_threshold of early stopping')
-parser.add_argument('-v', '--verbose', action='store_true', help='show details')
-args = parser.parse_args()
+args = TrainLocalOptions().parse()
 
 
 class EarlyStopper:

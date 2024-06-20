@@ -17,13 +17,13 @@ class CUFED(Dataset):
                     'UrbanTrip', 'Wedding', 'Zoo']
 
     def get_album_importance(self, album_imgs, album_importance):
-        img_score_dict = {}
+        img_to_score = {}
         for _, image, score in album_importance:
-            img_score_dict[image.split('/')[1]] = score
-        importances = np.zeros(len(album_imgs))
+            img_to_score[image.split('/')[1]] = score
+        importance = np.zeros(len(album_imgs))
         for i, image in enumerate(album_imgs):
-            importances[i] = img_score_dict[image[:-4]]
-        return importances
+            importance[i] = img_to_score[image[:-4]]
+        return importance
 
     def __init__(self, root_dir, feats_dir, split_dir, is_train=True):
         self.root_dir = root_dir

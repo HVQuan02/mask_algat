@@ -1,30 +1,16 @@
 import sys
 import time
 import torch
-import argparse
 import torch.nn as nn
 from datasets import CUFED
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score
+from options.test_options import TestOptions
 from utils import AP_partial, spearman_correlation, showCM
 from model import tokengraph_with_global_part_sharing as Model
 from sklearn.metrics import multilabel_confusion_matrix, classification_report
 
-
-parser = argparse.ArgumentParser(description='GCN Album Classification')
-parser.add_argument('model', nargs=1, help='trained model')
-parser.add_argument('--gcn_layers', type=int, default=2, help='number of gcn layers')
-parser.add_argument('--dataset', default='cufed', choices=['holidays', 'pec', 'cufed'])
-parser.add_argument('--dataset_root', default='/kaggle/input/thesis-cufed/CUFED', help='dataset root directory')
-parser.add_argument('--feats_dir', default='/kaggle/input/mask-cufed-feats', help='global and local features directory')
-parser.add_argument('--split_dir', default='/kaggle/input/cufed-full-split', help='train split and val split')
-parser.add_argument('--batch_size', type=int, default=64, help='batch size')
-parser.add_argument('--num_workers', type=int, default=2, help='number of workers for data loader')
-parser.add_argument('--save_scores', action='store_true', help='save the output scores')
-parser.add_argument('--save_path', default='scores.txt', help='output path')
-parser.add_argument('--threshold', type=float, default=0.75, help='threshold for logits to labels')
-parser.add_argument('-v', '--verbose', action='store_true', help='show details')
-args = parser.parse_args()
+args = TestOptions().parse()
 
 
 def evaluate(model, dataset, loader, out_file, device):
@@ -55,7 +41,7 @@ def evaluate(model, dataset, loader, out_file, device):
             gidx += shape
             importance_list.append(importances)
             avg_frame_wid = (wids_frame_local + wids_frame_global) / 2
-            frame_wid_list.append(torch.from_numpy(avg_frame_wid))
+            frame_wid_list.append(avg_frame_wid)
     
     m = nn.Sigmoid()
     preds = m(scores)
@@ -70,9 +56,9 @@ def evaluate(model, dataset, loader, out_file, device):
     
     importance_matrix = torch.cat(importance_list).to(device)
     wid_frame_matrix = torch.cat(frame_wid_list).to(device)
-    frame_spearman = spearman_correlation(wid_frame_matrix, importance_matrix)
+    spearman = spearman_correlation(wid_frame_matrix, importance_matrix)
 
-    return map_micro, map_macro, acc, frame_spearman, cms, cr
+    return map_micro, map_macro, acc, spearman, cms, cr
 
 
 def main():
@@ -100,13 +86,13 @@ def main():
         out_file = open(args.save_path, 'w')
 
     t0 = time.perf_counter()
-    map_micro, map_macro, acc, spearman_global, cms, cr = evaluate(model, dataset, loader, out_file, device)
+    map_micro, map_macro, acc, spearman, cms, cr = evaluate(model, dataset, loader, out_file, device)
     t1 = time.perf_counter()
 
     if args.save_scores:
         out_file.close()
 
-    print('map_micro={:.2f} map_macro={:.2f} accuracy={:.2f} spearman_global={:.2f} dt={:.2f}sec'.format(map_micro, map_macro, acc * 100, spearman_global, t1 - t0))
+    print('map_micro={:.2f} map_macro={:.2f} accuracy={:.2f} spearman={:.2f} dt={:.2f}sec'.format(map_micro, map_macro, acc * 100, spearman, t1 - t0))
     print(cr)
     showCM(cms)
 
