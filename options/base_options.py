@@ -17,7 +17,6 @@ class BaseOptions():
         parser.add_argument('--num_workers', type=int, default=4, help='number of workers for data loader')
         parser.add_argument('--mask_percentage', type=float, default=0.4, help='percentage of masked features')
         parser.add_argument('-v', '--verbose', action='store_true', help='show details')
-
         self.initialized = True
         return parser
 

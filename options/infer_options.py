@@ -9,5 +9,4 @@ class InferOptions(BaseOptions):
         parser.add_argument('--n_frames', type=int, default=5)
         parser.add_argument('--path_output', type=str, default='./outputs')
         parser.add_argument('--ema', action='store_true', help='use ema model or not')
-        
         return parser
