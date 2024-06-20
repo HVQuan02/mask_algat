@@ -89,8 +89,8 @@ def main():
     loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers)
 
     model = Model(args.gcn_layers, dataset.NUM_FEATS, dataset.NUM_CLASS).to(device)
-    data = torch.load(args.model[0])
-    model.load_state_dict(data['model_state_dict'])
+    data = torch.load(args.model[0], map_location='cpu')
+    model.load_state_dict(data['model_state_dict'], strict=True)
 
     if args.verbose:
         print("running on {}".format(device))

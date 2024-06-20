@@ -141,10 +141,10 @@ def main():
             'sched_state_dict': sched.state_dict()
         }
 
-        torch.save(model_config, os.path.join(args.save_folder, 'last-global-maskedViGAT-{}.pt'.format(args.dataset)))
+        torch.save(model_config, os.path.join(args.save_folder, 'last_global_maskedViGAT_{}.pt'.format(args.dataset)))
 
         if is_save_ckpt:
-            torch.save(model_config, os.path.join(args.save_folder, 'best-global-maskedViGAT-{}.pt'.format(args.dataset)))
+            torch.save(model_config, os.path.join(args.save_folder, 'best_global_maskedViGAT_{}.pt'.format(args.dataset)))
 
         if is_early_stopping:
             print('Stop at epoch {}'.format(epoch_cnt)) 
