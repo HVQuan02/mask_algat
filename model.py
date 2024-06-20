@@ -84,6 +84,7 @@ class tokengraph_with_global_part_sharing(nn.Module):
         x, adjobj = self.graph(feats, get_adj)
         adjobj = adjobj.cpu()
         wids_objects = adjobj.numpy().sum(axis=1)
+        
         x = x.view(N, FR, NF)
 
         x, adjframelocal = self.graph_omega(x, get_adj)
@@ -117,7 +118,6 @@ class MaskedGCN(nn.Module):
             for i in range(N):
                 mask_indices = torch.randperm(FR)[:int(self.mask_percentage * FR)]
                 feats[i, mask_indices] = self.masking_p
-
             x = self.graph(feats) # latent representation
             score_vector = self.fc(x)
 
