@@ -28,6 +28,7 @@ class CUFED(Dataset):
     def __init__(self, root_dir, feats_dir, split_dir, is_train=True):
         self.root_dir = root_dir
         self.feats_dir = feats_dir
+
         self.local_folder = 'clip_local'
         self.global_folder = 'clip_global'
         
@@ -91,7 +92,7 @@ class CUFED(Dataset):
         return feat_local, feat_global, label
 
 
-class CUFED_tokens(Dataset):
+class CUFED_Tokens(Dataset):
     NUM_CLASS = 23
     NUM_FRAMES = 30
     NUM_BOXES = 50
@@ -107,6 +108,7 @@ class CUFED_tokens(Dataset):
     def __init__(self, root_dir, feats_dir, split_dir, is_train=True):
         self.root_dir = root_dir
         self.feats_dir = feats_dir
+
         self.local_dir = 'clip_local'
         self.global_dir = 'clip_global'
         self.token_dir = 'token'
@@ -142,3 +144,99 @@ class CUFED_tokens(Dataset):
         token = np.load(token_path)
 
         return local_feat, global_feat, token
+
+
+class PEC(Dataset):
+    NUM_CLASS = 14
+    NUM_FRAMES = 30
+    NUM_BOXES = 50
+    NUM_FEATS = 1024
+    event_labels = ['Birthday', 'Children Birthday', 'Christmas', 'Concert', 'Cruise', 'Easter', 'Exhibition', 'Graduation', 'Halloween', 'Hiking', 'Road Trip', 'Saint Patrick Day', 'Skiing', 'Wedding']
+    
+    def __init__(self, dataset_path, feats_dir, is_train=True):
+        self.root_dir = dataset_path
+        self.feats_dir = feats_dir
+
+        self.local_dir = 'clip_local'
+        self.global_dir = 'clip_global'
+
+        if is_train:
+            self.phase = 'train'
+        else:
+            self.phase = 'test'
+
+        if self.phase == 'train':
+            split_path = os.path.join(self.root_dir, 'meta', 'train.txt')
+        else:
+            split_path = os.path.join(self.root_dir, 'meta', 'test.txt')
+        
+        with open(split_path, 'r') as f:
+            lines = f.readlines()
+
+        label_albums = [line.strip() for line in lines]
+        
+        alb_to_lbl = {}
+        albums = []
+        
+        for label_album in label_albums:
+            label, album = label_album.split('/')
+            alb_to_lbl[album] = label
+            albums.append(album)
+
+        self.albums = albums
+        self.alb_to_lbl = alb_to_lbl
+
+    def __len__(self):
+        return len(self.albums)
+    
+    def __getitem__(self, idx):
+        album = self.albums[idx]
+        feat_local = np.load(os.path.join(self.feats_dir, self.local_dir, album + '.npy'))
+        feat_global = np.load(os.path.join(self.feats_dir, self.global_dir, album + '.npy'))
+        label = self.alb_to_lbl[album]        
+
+        return feat_local, feat_global, label
+    
+
+class PEC_Tokens(Dataset):
+    NUM_CLASS = 14
+    NUM_FRAMES = 30
+    NUM_BOXES = 50
+    NUM_FEATS = 1024
+    event_labels = ['Birthday', 'Children Birthday', 'Christmas', 'Concert', 'Cruise', 'Easter', 'Exhibition', 'Graduation', 'Halloween', 'Hiking', 'Road Trip', 'Saint Patrick Day', 'Skiing', 'Wedding']
+
+    def __init__(self, dataset_path, feats_dir, is_train=True):
+        self.root_dir = dataset_path
+        self.feats_dir = feats_dir
+
+        self.local_dir = 'clip_local'
+        self.global_dir = 'clip_global'
+        self.token_dir = 'token'
+
+        if is_train:
+            self.phase = 'train'
+        else:
+            self.phase = 'test'
+
+        if self.phase == 'train':
+            split_path = os.path.join(self.root_dir, 'meta', 'train.txt')
+        else:
+            split_path = os.path.join(self.root_dir, 'meta', 'test.txt')
+        
+        with open(split_path, 'r') as f:
+            lines = f.readlines()
+
+        albums = [line.strip().split('/')[-1] for line in lines]
+
+        self.albums = albums
+
+    def __len__(self):
+        return len(self.albums)
+    
+    def __getitem__(self, idx):
+        album = self.albums[idx]
+        feat_local = np.load(os.path.join(self.feats_dir, self.local_dir, album + '.npy'))
+        feat_global = np.load(os.path.join(self.feats_dir, self.global_dir, album + '.npy'))
+        token = np.load(os.path.join(self.feats_dir, self.token_dir, album + '.npy'))
+
+        return feat_local, feat_global, token

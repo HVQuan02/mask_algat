@@ -4,7 +4,7 @@ import time
 import torch
 import numpy as np
 import torch.nn as nn
-from dataset import CUFED
+from dataset import CUFED, PEC
 import torch.optim as optim
 from utils import AP_partial
 from torch.utils.data import DataLoader
@@ -86,11 +86,15 @@ def main():
     if args.dataset == 'cufed':
         train_dataset = CUFED(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir)
         val_dataset = CUFED(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir, is_train=False)
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
+        val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
+    elif args.dataset == 'pec':
+        train_dataset = PEC(root_dir=args.dataset_root, feats_dir=args.feats_dir)
+        val_dataset = PEC(root_dir=args.dataset_root, feats_dir=args.feats_dir, is_train=False)
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers,shuffle=True)
     else:
         sys.exit("Unknown dataset!")
-
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
 
     if args.verbose:
         print("running on {}".format(device))

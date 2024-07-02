@@ -5,7 +5,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
-from dataset import CUFED_tokens
+from dataset import CUFED_Tokens, PEC_Tokens
 from model import MaskedGCN as Model
 from torch.utils.data import DataLoader
 from options.train_global_options import TrainGlobalOptions
@@ -78,13 +78,17 @@ def main():
         os.mkdir(args.save_dir)
 
     if args.dataset == 'cufed':
-        train_dataset = CUFED_tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir)
-        val_dataset = CUFED_tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir, is_train=False)
+        train_dataset = CUFED_Tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir)
+        val_dataset = CUFED_Tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir, is_train=False)
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
+        val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
+    elif args.dataset == 'pec':
+        train_dataset = PEC_Tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir)
+        val_dataset = PEC_Tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, is_train=False)
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
     else:
         sys.exit("Unknown dataset!")
-
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
 
     if args.verbose:
         print("running on {}".format(device))

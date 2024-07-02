@@ -1,8 +1,9 @@
 import sys
 import time
 import torch
+import numpy as np
 import torch.nn as nn
-from dataset import CUFED
+from dataset import CUFED, PEC
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score
 from options.test_options import TestOptions
@@ -48,6 +49,11 @@ def evaluate(model, dataset, loader, out_file, device):
     preds[preds >= args.threshold] = 1
     preds[preds < args.threshold] = 0
     scores, preds = scores.numpy(), preds.numpy()
+    
+    # Ensure no row has all zeros
+    for i in range(preds.shape[0]):
+        if np.sum(preds[i]) == 0:
+            preds[i][np.argmax(scores[i])] = 1
 
     map_micro, map_macro = AP_partial(dataset.labels, scores)[1:3]
     acc = accuracy_score(dataset.labels, preds)
@@ -66,10 +72,12 @@ def main():
 
     if args.dataset == 'cufed':
         dataset = CUFED(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir, is_train=False)
+        loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers)
+    elif args.dataset == 'pec':
+        dataset = PEC(root_dir=args.dataset_root, feats_dir=args.feats_dir, is_train=False)
+        loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
     else:
         sys.exit("Unknown dataset!")
-
-    loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers)
 
     model = Model(args.gcn_layers, dataset.NUM_FEATS, dataset.NUM_CLASS)
     state = torch.load(args.model[0], map_location=device)
@@ -92,7 +100,7 @@ def main():
     if args.save_scores:
         out_file.close()
 
-    print('map_micro={:.2f} map_macro={:.2f} accuracy={:.2f} spearman={:.2f} dt={:.2f}sec'.format(map_micro, map_macro, acc * 100, spearman, t1 - t0))
+    print('map_micro={:.2f} map_macro={:.2f} accuracy={:.2f} spearman={:.3f} dt={:.2f}sec'.format(map_micro, map_macro, acc * 100, spearman, t1 - t0))
     print(cr)
     showCM(cms)
 
