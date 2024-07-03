@@ -61,7 +61,10 @@ def validate_omega_t(model, dataset, loader, device):
 
     with torch.no_grad():
         for batch in loader:
-            feats_local, feats_global, _, _ = batch
+            if isinstance(dataset, CUFED):
+                feats_local, feats_global, _, _ = batch
+            else:
+                feats_local, feats_global, _ = batch
             feats_local = feats_local.to(device)
             feats_global = feats_global.to(device)
             out_data = model(feats_local, feats_global)
@@ -89,8 +92,8 @@ def main():
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
         val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
     elif args.dataset == 'pec':
-        train_dataset = PEC(root_dir=args.dataset_root, feats_dir=args.feats_dir)
-        val_dataset = PEC(root_dir=args.dataset_root, feats_dir=args.feats_dir, is_train=False)
+        train_dataset = PEC(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir)
+        val_dataset = PEC(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir, is_train=False)
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers,shuffle=True)
     else:

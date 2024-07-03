@@ -83,8 +83,8 @@ def main():
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
         val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
     elif args.dataset == 'pec':
-        train_dataset = PEC_Tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir)
-        val_dataset = PEC_Tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, is_train=False)
+        train_dataset = PEC_Tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir)
+        val_dataset = PEC_Tokens(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir, is_train=False)
         train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
     else:
