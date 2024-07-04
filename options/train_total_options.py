@@ -3,7 +3,7 @@ from .base_options import BaseOptions
 class TrainTotalOptions(BaseOptions):
     def initialize(self, parser):
         parser = BaseOptions.initialize(self, parser)
-        parser.add_argument('model', nargs='+', help='trained model')
+        parser.add_argument('model', nargs='*', help='trained model')
         parser.add_argument('-L', '--use_local', action='store_true', help='use pretrained local model or not')
         parser.add_argument('-G', '--use_global', action='store_true', help='use pretrained global model or not')
         parser.add_argument('--lr', type=float, default=1e-4, help='initial learning rate')

@@ -97,7 +97,7 @@ def main():
         loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers)
     elif args.dataset == 'pec':
         dataset = PEC(root_dir=args.dataset_root, feats_dir=args.feats_dir, split_dir=args.split_dir, is_train=False)
-        loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
+        loader = DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers)
     else:
         sys.exit("Unknown dataset!")
 
