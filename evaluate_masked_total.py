@@ -62,17 +62,27 @@ def evaluate(model, dataset, loader, out_file, device):
 
                 scores[gidx:gidx+shape, :] = out_data.cpu()
                 gidx += shape
-                
-    m = nn.Sigmoid()
-    preds = m(scores)
-    preds[preds >= args.threshold] = 1
-    preds[preds < args.threshold] = 0
-    scores, preds = scores.numpy(), preds.numpy()
-    
-    # Ensure no row has all zeros
-    for i in range(preds.shape[0]):
-        if np.sum(preds[i]) == 0:
-            preds[i][np.argmax(scores[i])] = 1
+
+    if is_cufed:         
+        m = nn.Sigmoid()
+        preds = m(scores)
+        preds[preds >= args.threshold] = 1
+        preds[preds < args.threshold] = 0
+        scores, preds = scores.numpy(), preds.numpy()
+        
+        # Ensure no row has all zeros
+        for i in range(preds.shape[0]):
+            if np.sum(preds[i]) == 0:
+                preds[i][np.argmax(scores[i])] = 1
+    else:
+        scores = scores.numpy()
+        preds = np.zeros(scores.shape, dtype=np.float32)
+
+        # Find the index of the maximum value along each row
+        max_indices = np.argmax(scores, axis=1)
+
+        # Set the corresponding elements in 'preds' to 1
+        preds[np.arange(preds.shape[0]), max_indices] = 1
 
     map_micro, map_macro = AP_partial(dataset.labels, scores)[1:3]
     acc = accuracy_score(dataset.labels, preds)
